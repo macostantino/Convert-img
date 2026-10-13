@@ -64,10 +64,12 @@ def _to_8bit_rgba(im: Image.Image) -> Image.Image:
     return im.convert("RGBA")
 
 
-def png_to_cmyk_tiff(data: bytes, chunk_rows: int = 512) -> bytes:
+def png_to_cmyk_tiff(data: bytes, chunk_rows: int = 512, black_pct: float = 0) -> bytes:
     """RGB -> CMYK matemático (sin perfil ICC) con reemplazo total de gris por negro:
          K = 255 - max(R,G,B);  C,M,Y = (max - canal) / max * 255
+       Los píxeles con max(R,G,B) <= black_pct % de 255 se fuerzan a negro puro (C=M=Y=0, K=100%).
        Las transparencias se aplanan sobre fondo blanco. Conserva los DPI del PNG (300 si no trae)."""
+    black_max = round(max(0.0, black_pct) / 100 * 255)
     src = Image.open(io.BytesIO(data))
     dpi = src.info.get("dpi") or (300, 300)
     dpi = (round(float(dpi[0])), round(float(dpi[1])))
@@ -80,6 +82,7 @@ def png_to_cmyk_tiff(data: bytes, chunk_rows: int = 512) -> bytes:
         a = blk[..., 3:4] / 255.0
         rgb = blk[..., :3] * a + 255.0 * (1.0 - a)
         mx = rgb.max(axis=2, keepdims=True)
+        mx = np.where(mx <= black_max, 0.0, mx)         # casi negro -> negro puro (solo tinta K)
         safe = np.where(mx > 0, mx, 1.0)
         cmy = np.where(mx > 0, (mx - rgb) / safe * 255.0, 0.0)
         out[y0:y0 + chunk_rows, :, :3] = np.rint(cmy).astype(np.uint8)
@@ -90,11 +93,11 @@ def png_to_cmyk_tiff(data: bytes, chunk_rows: int = 512) -> bytes:
 
 
 # ---------------------------------------------------------------- API común
-def convert(mode: str, data: bytes, quality: int = 92) -> bytes:
+def convert(mode: str, data: bytes, quality: int = 92, black_pct: float = 0) -> bytes:
     if mode == "heic":
         return heic_to_jpg(data, quality)
     if mode == "png":
-        return png_to_cmyk_tiff(data)
+        return png_to_cmyk_tiff(data, black_pct=black_pct)
     raise ValueError(f"Unknown mode: {mode}")
 
 
