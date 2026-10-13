@@ -131,6 +131,12 @@ def test_limit_counter_memory_and_file(tmp_path):
         assert lic.info(store, 3)["used"] == 0
 
 
+def test_unlimited_counter_only_counts(tmp_path):
+    store = lic.FileStore(tmp_path / "a.json", tmp_path / "b.json")
+    assert all(lic.consume(store, 0) for _ in range(5))
+    assert lic.info(store, 0) == {"used": 5, "limit": 0, "remaining": None}
+
+
 def test_file_counter_survives_tampering_of_one_copy(tmp_path):
     pa, pb = tmp_path / "a.json", tmp_path / "b.json"
     s = lic.FileStore(pa, pb)

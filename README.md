@@ -23,7 +23,7 @@ Versión gratuita: límite de 300 conversiones, luego avisa para actualizar a PR
 |---|---|
 | `app.py` | Interfaz Streamlit (selector de modo, upload, progreso, descargas, medidor de licencia). |
 | `converters.py` | Lógica de conversión pura (Pillow + pillow-heif + numpy). Sin Streamlit, testeable. |
-| `licensing.py` | Contador del límite de 300 conversiones (por sesión o en archivo firmado). |
+| `licensing.py` | Contador de archivos convertidos (límite opcional) (por sesión o en archivo firmado). |
 | `tests/` | Tests de pytest (conversión, colores CMYK, EXIF, DPI, límite). |
 | `.streamlit/config.toml` | Tema (colores de Margarita IT) y límite de subida (200 MB por archivo). |
 | `.github/workflows/ci.yml` | Corre los tests en cada push. |
@@ -51,11 +51,11 @@ Versión gratuita: límite de 300 conversiones, luego avisa para actualizar a PR
    *editar con Claude Code → push automático → app actualizada en 1-2 minutos*.
 
 ### Secrets opcionales (Settings > Secrets, ver `.streamlit/secrets.toml.example`)
-- `ADMIN_KEY`: habilita un panel **Admin** (barra lateral) con botón para reiniciar el contador.
+- `ADMIN_KEY`: habilita un panel **Admin** (barra lateral) que muestra el total de archivos convertidos y permite reiniciar el contador.
 - `PRO_URL`: agrega el botón "Get the PRO version" en el aviso de límite.
 
 ### Variables de entorno opcionales
-- `CONVERT_IMG_LIMIT` (por defecto 300) · `CONVERT_IMG_COUNTER` = `session` (por defecto) o `file` · `CONVERT_IMG_SECRET`.
+- `CONVERT_IMG_LIMIT` (por defecto 0 = sin límite; poner p. ej. 300 para activar un límite) · `CONVERT_IMG_COUNTER` = `file` (por defecto, total global) o `session` · `CONVERT_IMG_SECRET`.
 
 ## Notas y límites
 - **El contador** por defecto es *por sesión del navegador* (se reinicia al recargar). Con `CONVERT_IMG_COUNTER=file` se guarda en

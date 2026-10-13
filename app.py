@@ -104,7 +104,7 @@ def get_secret(name: str, default: str = "") -> str:
 
 
 def get_store():
-    if os.getenv("CONVERT_IMG_COUNTER", "session").lower() == "file":
+    if os.getenv("CONVERT_IMG_COUNTER", "file").lower() == "file":
         return lic.FileStore()
     return lic.MemoryStore(st.session_state)
 
@@ -119,6 +119,8 @@ def fmt_eta(s: float) -> str:
 
 
 def render_usage(u: dict) -> None:
+    if not u["limit"]:                  # sin límite: el contador no se muestra al público
+        return
     p = round(u["used"] / u["limit"] * 100)
     cls = "full" if p >= 100 else "warn" if p >= 80 else ""
     extra = " · Upgrade to the PRO version" if u["remaining"] <= 0 else ""
@@ -156,7 +158,8 @@ if ADMIN_KEY:
     with st.sidebar:
         with st.expander("Admin"):
             k = st.text_input("Key", type="password", key="admin_key")
-            if st.button("Reset free counter") and k == ADMIN_KEY:
+            st.metric("Files converted (total)", lic.info(store)["used"])
+            if st.button("Reset counter") and k == ADMIN_KEY:
                 lic.reset(store)
                 st.success("Counter reset")
                 st.rerun()
@@ -209,6 +212,8 @@ with st.container(border=True):
     st.markdown("##### 2 · Convert")
     n = len(files)
     left = usage["remaining"]
+    if left is None:                    # sin límite
+        left = n
     if n and 0 < left < n:
         st.info(f"Only **{left}** of {n} files will be converted (free version limit).")
     go = st.button("Convert", key="go", disabled=(n == 0 or left <= 0), type="primary")
@@ -227,7 +232,7 @@ with st.container(border=True):
         taken: set[str] = set()
         items, ok, er, limit_hit, t0 = [], 0, 0, False, time.time()
         for i, f in enumerate(files):
-            if lic.info(store)["remaining"] <= 0:
+            if lic.info(store)["remaining"] == 0:
                 limit_hit = True
                 break
             eta = f" · ~{fmt_eta((time.time() - t0) / i * (n - i))} left" if i else ""

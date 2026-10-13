@@ -1,4 +1,7 @@
-"""convert-img · límite de conversiones de la versión gratuita.
+"""convert-img · contador de conversiones (y límite opcional).
+
+Por defecto NO hay límite (CONVERT_IMG_LIMIT=0): solo se cuenta cuántos archivos se convierten.
+Para activar un límite, definir CONVERT_IMG_LIMIT=300 (o el valor que se quiera).
 
 Dos formas de guardar el contador (variable CONVERT_IMG_COUNTER):
   session (por defecto) -> por sesión del navegador. Se reinicia al recargar la página.
@@ -14,7 +17,7 @@ import json
 import os
 from pathlib import Path
 
-LIMIT = int(os.getenv("CONVERT_IMG_LIMIT", "300"))
+LIMIT = int(os.getenv("CONVERT_IMG_LIMIT", "0"))      # 0 = sin límite
 _SECRET = os.getenv("CONVERT_IMG_SECRET", "MargaritaIT|convert-img|free|v1").encode()
 
 
@@ -69,13 +72,15 @@ class FileStore:
 
 def info(store, limit: int = LIMIT) -> dict:
     used = store.read()
+    if limit <= 0:                      # sin límite: solo contador
+        return {"used": used, "limit": 0, "remaining": None}
     return {"used": min(used, limit), "limit": limit, "remaining": max(0, limit - used)}
 
 
 def consume(store, limit: int = LIMIT) -> bool:
-    """Descuenta una conversión. Devuelve False si ya se alcanzó el límite."""
+    """Suma una conversión. Devuelve False solo si hay límite activo y ya se alcanzó."""
     used = store.read()
-    if used >= limit:
+    if 0 < limit <= used:
         return False
     store.write(used + 1)
     return True
