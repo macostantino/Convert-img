@@ -1,6 +1,6 @@
 # convert-img (by nosotros)
 
-App Streamlit para convertir imágenes: HEIC→JPG y PNG→CMYK (TIFF). UI y textos visibles **en inglés**.
+App Streamlit para convertir imágenes: HEIC→JPG y PNG→CMYK (TIFF). UI bilingüe: español (por defecto) e inglés, con selector de bandera; los textos viven en `TEXTS` de `app.py` (agregar siempre ambos idiomas).
 
 - `app.py`: solo interfaz. La lógica va en `converters.py` (sin importar streamlit) y el límite en `licensing.py`.
 - Para agregar una conversión: nueva función en `converters.py`, entrada en `MODES` y en `convert()`, tests en `tests/`, botón se crea solo desde `MODES` (revisar `ICONS` y los textos `titles`/`leads` en `app.py`).
