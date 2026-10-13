@@ -78,6 +78,15 @@ def test_chunking_gives_same_result():
     assert np.array_equal(a, b)
 
 
+def test_near_black_becomes_pure_k():
+    px = np.array([[[0, 0, 0], [10, 10, 10], [0, 0, 12], [200, 30, 30]]], dtype=np.uint8)
+    _, c = tiff_cmyk(cv.png_to_cmyk_tiff(png_bytes(px), black_pct=5))
+    assert (c[0, :3] == [0, 0, 0, 255]).all()
+    assert c[0, 3, 0] == 0 and c[0, 3, 3] == 55           # un color real no se toca
+    _, c0 = tiff_cmyk(cv.png_to_cmyk_tiff(png_bytes(px)))
+    assert c0[0, 2, 0] == 255                              # sin umbral, el casi negro tintado mezcla tintas
+
+
 # ------------------------------------------------------------- HEIC -> JPG
 def make_heic(size=(64, 48), exif_orientation=None):
     im = Image.fromarray(np.random.default_rng(4).integers(0, 256, (size[1], size[0], 3), dtype=np.uint8))

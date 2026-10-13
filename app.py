@@ -197,7 +197,7 @@ with st.container(border=True):
         type=cv.accepted_types(ss.mode), accept_multiple_files=True,
         key=f"up_{ss.mode}_{ss.uploader_n}", label_visibility="collapsed",
     )
-    quality = 92
+    quality, black_pct = 92, 0
     if ss.mode == "heic":
         quality = st.slider("JPG quality", 50, 100, 92, format="%d%%")
     else:
@@ -205,6 +205,9 @@ with st.container(border=True):
             '<div class="note">Output is a lossless <b>CMYK TIFF</b> (8 bits per channel, Deflate compression). '
             "Transparent areas are flattened on white and the PNG's DPI is kept (300 if it has none). "
             "The conversion is mathematical, without an ICC profile.</div>", unsafe_allow_html=True)
+        black_pct = st.slider("Pure black threshold", 0, 15, 5, format="%d%%",
+                              help="Pixels this dark (or darker) become pure black: K 100%, with no C, M or Y. "
+                                   "Use 0% to disable.")
 
 # ------------------------------------------------------------------ conversión
 usage = lic.info(store)
@@ -240,7 +243,7 @@ with st.container(border=True):
             t1 = time.time()
             try:
                 data = f.getvalue()
-                out = cv.convert(ss.mode, data, quality)
+                out = cv.convert(ss.mode, data, quality, black_pct)
                 lic.consume(store, usage["limit"])
                 items.append({"ok": True, "src": f.name, "out_name": cv.output_name(f.name, ss.mode, taken),
                               "bytes": out, "in_size": len(data), "ms": (time.time() - t1) * 1000})
