@@ -91,6 +91,76 @@ section[data-testid="stFileUploaderDropzone"]:hover{border-color:var(--teal)}
     unsafe_allow_html=True,
 )
 
+# ------------------------------------------------------------------ idiomas
+LANGS = {"es": "🇪🇸 Español", "en": "🇬🇧 English"}
+TEXTS = {
+    "es": {
+        "heic_label": "HEIC a JPG", "heic_sub": "Fotos de iPhone a JPEG estándar",
+        "png_label": "PNG a CMYK", "png_sub": "TIFF CMYK listo para imprimir",
+        "heic_title": "<span>HEIC a JPG</span> Convertidor", "png_title": "<span>PNG a CMYK</span> Convertidor",
+        "heic_lead": "Sube tus fotos HEIC, pulsa <b>Convertir</b> y descarga los JPG terminados. Todo se ejecuta en esta sesión de la app.",
+        "png_lead": "Sube tus imágenes PNG, pulsa <b>Convertir</b> y descarga archivos TIFF CMYK listos para imprimir. Todo se ejecuta en esta sesión de la app.",
+        "step1": "1 · Sube tus archivos", "step2": "2 · Convierte", "step3": "3 · Descarga",
+        "uploader": "Selecciona o arrastra tus archivos {noun}",
+        "quality": "Calidad del JPG",
+        "png_note": "La salida es un <b>TIFF CMYK</b> sin pérdida (8 bits por canal, compresión Deflate). "
+                    "Las zonas transparentes se aplanan sobre blanco y se conservan los DPI del PNG (300 si no trae). "
+                    "La conversión es matemática, sin perfil ICC.",
+        "black": "Umbral de negro puro",
+        "black_help": "Los píxeles así de oscuros (o más) pasan a negro puro: K 100%, sin C, M ni Y. Usa 0% para desactivarlo.",
+        "only_n": "Solo se convertirán **{left}** de {n} archivos (límite de la versión gratuita).",
+        "convert": "Convertir",
+        "no_files": "Aún no has subido archivos {noun}.",
+        "limit_caption": "Límite alcanzado. Pásate a la versión PRO.",
+        "idle": "En espera", "left": "faltan ~{eta}", "converting": "Convirtiendo {name}{eta}  ·  {pct}%  ·  {i} / {n}",
+        "stopped": "Detenido: límite de la versión gratuita alcanzado", "done": "¡Conversión completa!",
+        "converted": "Convertidos", "errors": "Errores", "time": "Tiempo",
+        "dl_all": "Descargar todo ({n} archivo{s}, .zip)", "dl": "Descargar",
+        "saved": "Los archivos se guardan en la carpeta <b>Descargas</b> del equipo donde corre tu navegador.",
+        "clear": "Limpiar y empezar de nuevo",
+        "free": "Versión gratuita", "used": "Conversiones usadas", "upgrade": "Pásate a la versión PRO",
+        "dlg_title": "Límite alcanzado · PRO",
+        "dlg_body": "Alcanzaste el límite de **{limit} conversiones** de la versión gratuita. "
+                    "Pásate a la **versión PRO** para seguir convirtiendo sin límites.",
+        "get_pro": "Obtener la versión PRO", "got_it": "Entendido",
+    },
+    "en": {
+        "heic_label": "HEIC to JPG", "heic_sub": "iPhone photos to standard JPEG",
+        "png_label": "PNG to CMYK", "png_sub": "Print-ready CMYK TIFF",
+        "heic_title": "<span>HEIC to JPG</span> Converter", "png_title": "<span>PNG to CMYK</span> Converter",
+        "heic_lead": "Upload your HEIC photos, press <b>Convert</b> and download the finished JPGs. Everything runs in this app session.",
+        "png_lead": "Upload your PNG images, press <b>Convert</b> and download print-ready CMYK TIFF files. Everything runs in this app session.",
+        "step1": "1 · Upload your files", "step2": "2 · Convert", "step3": "3 · Download",
+        "uploader": "Select or drop your {noun} files",
+        "quality": "JPG quality",
+        "png_note": "Output is a lossless <b>CMYK TIFF</b> (8 bits per channel, Deflate compression). "
+                    "Transparent areas are flattened on white and the PNG's DPI is kept (300 if it has none). "
+                    "The conversion is mathematical, without an ICC profile.",
+        "black": "Pure black threshold",
+        "black_help": "Pixels this dark (or darker) become pure black: K 100%, with no C, M or Y. Use 0% to disable.",
+        "only_n": "Only **{left}** of {n} files will be converted (free version limit).",
+        "convert": "Convert",
+        "no_files": "No {noun} files uploaded yet.",
+        "limit_caption": "Limit reached. Upgrade to the PRO version.",
+        "idle": "Idle", "left": "~{eta} left", "converting": "Converting {name}{eta}  ·  {pct}%  ·  {i} / {n}",
+        "stopped": "Stopped: free version limit reached", "done": "Conversion complete!",
+        "converted": "Converted", "errors": "Errors", "time": "Time",
+        "dl_all": "Download all ({n} file{s}, .zip)", "dl": "Download",
+        "saved": "Files are saved to the <b>Downloads</b> folder of the computer where your browser is running.",
+        "clear": "Clear and start over",
+        "free": "Free version", "used": "Conversions used", "upgrade": "Upgrade to the PRO version",
+        "dlg_title": "Limit reached · PRO",
+        "dlg_body": "You have reached the **{limit}-conversion** limit of the free version. "
+                    "Upgrade to the **PRO version** to keep converting with no limits.",
+        "get_pro": "Get the PRO version", "got_it": "Got it",
+    },
+}
+
+
+def t(key: str, **kw) -> str:
+    txt = TEXTS[st.session_state.get("lang", "es")][key]
+    return txt.format(**kw) if kw else txt
+
 
 # ------------------------------------------------------------------ utilidades
 def get_secret(name: str, default: str = "") -> str:
@@ -123,24 +193,20 @@ def render_usage(u: dict) -> None:
         return
     p = round(u["used"] / u["limit"] * 100)
     cls = "full" if p >= 100 else "warn" if p >= 80 else ""
-    extra = " · Upgrade to the PRO version" if u["remaining"] <= 0 else ""
+    extra = f" · {t('upgrade')}" if u["remaining"] <= 0 else ""
     st.markdown(
-        f'<div class="lic {cls}"><span class="tag">Free version</span><div class="t">'
-        f'Conversions used: <b>{u["used"]} / {u["limit"]}</b>{extra}<div class="mt"><div style="width:{p}%"></div></div></div></div>',
+        f'<div class="lic {cls}"><span class="tag">{t("free")}</span><div class="t">'
+        f'{t("used")}: <b>{u["used"]} / {u["limit"]}</b>{extra}<div class="mt"><div style="width:{p}%"></div></div></div></div>',
         unsafe_allow_html=True,
     )
 
 
-@st.dialog("Limit reached · PRO")
 def pro_dialog(limit: int) -> None:
-    st.markdown(
-        f"You have reached the **{limit}-conversion** limit of the free version. "
-        "Upgrade to the **PRO version** to keep converting with no limits."
-    )
+    st.markdown(t("dlg_body", limit=limit))
     url = get_secret("PRO_URL")
     if url:
-        st.link_button("Get the PRO version", url)
-    if st.button("Got it", key="dlg_ok"):
+        st.link_button(t("get_pro"), url)
+    if st.button(t("got_it"), key="dlg_ok"):
         st.rerun()
 
 
@@ -150,6 +216,7 @@ ss.setdefault("mode", "heic")
 ss.setdefault("uploader_n", 0)
 ss.setdefault("result", None)
 ss.setdefault("show_pro", False)
+ss.setdefault("lang", "es")
 store = get_store()
 
 # Admin (opcional): solo aparece si hay ADMIN_KEY en secrets / variable de entorno
@@ -171,63 +238,60 @@ def set_mode(m: str) -> None:
 
 
 # ------------------------------------------------------------------ cabecera
-c1, c2 = st.columns([1, 3], vertical_alignment="center")
+c1, c2, c3 = st.columns([1, 2.4, 1.2], vertical_alignment="center")
 c1.image(str(LOGO), width=118)
+with c3:
+    pick = st.segmented_control("Language", list(LANGS), format_func=LANGS.get, default=ss.lang,
+                                key="lang_pick", label_visibility="collapsed")
+    if pick and pick != ss.lang:        # al des-seleccionar se mantiene el idioma actual
+        ss.lang = pick
+        st.rerun()
 mode = cv.MODES[ss.mode]
-leads = {
-    "heic": "Upload your HEIC photos, press <b>Convert</b> and download the finished JPGs. Everything runs in this app session.",
-    "png": "Upload your PNG images, press <b>Convert</b> and download print-ready CMYK TIFF files. Everything runs in this app session.",
-}
-titles = {"heic": "<span>HEIC to JPG</span> Converter", "png": "<span>PNG to CMYK</span> Converter"}
-c2.markdown(f'<div class="hero"><h1>{titles[ss.mode]}</h1><p>{leads[ss.mode]}</p></div>', unsafe_allow_html=True)
+c2.markdown(f'<div class="hero"><h1>{t(ss.mode + "_title")}</h1><p>{t(ss.mode + "_lead")}</p></div>',
+            unsafe_allow_html=True)
 
 # ------------------------------------------------------------------ selector de conversión
 b1, b2 = st.columns(2)
 for col, m in ((b1, cv.MODES["heic"]), (b2, cv.MODES["png"])):
     with col:
-        st.button(f"**{m.label}**  \n{m.subtitle}", key=f"mode_{m.key}", icon=ICONS[m.key], use_container_width=True,
+        st.button(f"**{t(m.key + '_label')}**  \n{t(m.key + '_sub')}", key=f"mode_{m.key}", icon=ICONS[m.key], use_container_width=True,
                   type="primary" if ss.mode == m.key else "secondary", on_click=set_mode, args=(m.key,),
                   )
 
 # ------------------------------------------------------------------ carga y opciones
 with st.container(border=True):
-    st.markdown("##### 1 · Upload your files")
+    st.markdown(f"##### {t('step1')}")
     files = st.file_uploader(
-        f"Select or drop your {mode.noun} files",
+        t("uploader", noun=mode.noun),
         type=cv.accepted_types(ss.mode), accept_multiple_files=True,
         key=f"up_{ss.mode}_{ss.uploader_n}", label_visibility="collapsed",
     )
     quality, black_pct = 92, 0
     if ss.mode == "heic":
-        quality = st.slider("JPG quality", 50, 100, 92, format="%d%%")
+        quality = st.slider(t("quality"), 50, 100, 92, format="%d%%")
     else:
-        st.markdown(
-            '<div class="note">Output is a lossless <b>CMYK TIFF</b> (8 bits per channel, Deflate compression). '
-            "Transparent areas are flattened on white and the PNG's DPI is kept (300 if it has none). "
-            "The conversion is mathematical, without an ICC profile.</div>", unsafe_allow_html=True)
-        black_pct = st.slider("Pure black threshold", 0, 15, 5, format="%d%%",
-                              help="Pixels this dark (or darker) become pure black: K 100%, with no C, M or Y. "
-                                   "Use 0% to disable.")
+        st.markdown(f'<div class="note">{t("png_note")}</div>', unsafe_allow_html=True)
+        black_pct = st.slider(t("black"), 0, 15, 5, format="%d%%", help=t("black_help"))
 
 # ------------------------------------------------------------------ conversión
 usage = lic.info(store)
 with st.container(border=True):
-    st.markdown("##### 2 · Convert")
+    st.markdown(f"##### {t('step2')}")
     n = len(files)
     left = usage["remaining"]
     if left is None:                    # sin límite
         left = n
     if n and 0 < left < n:
-        st.info(f"Only **{left}** of {n} files will be converted (free version limit).")
-    go = st.button("Convert", key="go", disabled=(n == 0 or left <= 0), type="primary")
+        st.info(t("only_n", left=left, n=n))
+    go = st.button(t("convert"), key="go", disabled=(n == 0 or left <= 0), type="primary")
     if n == 0:
-        st.caption(f"No {mode.noun} files uploaded yet.")
+        st.caption(t("no_files", noun=mode.noun))
     elif left <= 0:
-        st.caption("Limit reached. Upgrade to the PRO version.")
+        st.caption(t("limit_caption"))
     prog_slot = st.empty()
     status_slot = st.empty()
     if ss.result is None:
-        prog_slot.progress(0.0, text="Idle")
+        prog_slot.progress(0.0, text=t("idle"))
     elif not go and ss.result["mode"] == ss.mode:
         prog_slot.progress(ss.result["prog"][0], text=ss.result["prog"][1])
 
@@ -238,8 +302,8 @@ with st.container(border=True):
             if lic.info(store)["remaining"] == 0:
                 limit_hit = True
                 break
-            eta = f" · ~{fmt_eta((time.time() - t0) / i * (n - i))} left" if i else ""
-            prog_slot.progress(i / n, text=f"Converting {f.name}{eta}  ·  {round(i / n * 100)}%  ·  {i} / {n}")
+            eta = f" · {t('left', eta=fmt_eta((time.time() - t0) / i * (n - i)))}" if i else ""
+            prog_slot.progress(i / n, text=t("converting", name=f.name, eta=eta, pct=round(i / n * 100), i=i, n=n))
             t1 = time.time()
             try:
                 data = f.getvalue()
@@ -253,7 +317,7 @@ with st.container(border=True):
                 er += 1
         secs = time.time() - t0
         prog = (len(items) / n if limit_hit else 1.0,
-                ("Stopped: free version limit reached" if limit_hit else "Conversion complete!") + f" · {secs:.1f} s")
+                (t("stopped") if limit_hit else t("done")) + f" · {secs:.1f} s")
         prog_slot.progress(prog[0], text=prog[1])
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
@@ -271,18 +335,17 @@ with st.container(border=True):
 res = ss.result
 if res and res["mode"] == ss.mode:
     with st.container(border=True):
-        st.markdown("##### 3 · Download")
+        st.markdown(f"##### {t('step3')}")
         st.markdown(
-            f'<div class="tiles"><div class="tile ok"><span>Converted</span><b>{res["ok"]}</b></div>'
-            f'<div class="tile er"><span>Errors</span><b>{res["er"]}</b></div>'
-            f'<div class="tile"><span>Time</span><b>{res["secs"]:.1f} s</b></div></div>',
+            f'<div class="tiles"><div class="tile ok"><span>{t("converted")}</span><b>{res["ok"]}</b></div>'
+            f'<div class="tile er"><span>{t("errors")}</span><b>{res["er"]}</b></div>'
+            f'<div class="tile"><span>{t("time")}</span><b>{res["secs"]:.1f} s</b></div></div>',
             unsafe_allow_html=True)
         if res["ok"]:
-            st.download_button(f"Download all ({res['ok']} file{'s' if res['ok'] != 1 else ''}, .zip)",
+            st.download_button(t("dl_all", n=res["ok"], s="s" if res["ok"] != 1 else ""),
                                data=res["zip"], file_name=f"convert-img-{res['mode']}-{res['stamp']}.zip",
                                mime="application/zip", key="dl_zip", on_click="ignore")
-            st.markdown('<div class="note">Files are saved to the <b>Downloads</b> folder of the computer '
-                        "where your browser is running.</div>", unsafe_allow_html=True)
+            st.markdown(f'<div class="note">{t("saved")}</div>', unsafe_allow_html=True)
         with st.container(height=min(360, 52 * max(2, len(res["items"]))), border=False):
             for i, it in enumerate(res["items"]):
                 a, b = st.columns([5, 1], vertical_alignment="center")
@@ -291,18 +354,18 @@ if res and res["mode"] == ss.mode:
                                f'{it["src"]} → {it["out_name"]}</span><span class="m">{fmt_size(it["in_size"])} → '
                                f'{fmt_size(len(it["bytes"]))} · {it["ms"] / 1000:.1f} s</span></div>', unsafe_allow_html=True)
                     if i < MAX_ROWS_WITH_BUTTON:
-                        b.download_button("Download", data=it["bytes"], file_name=it["out_name"],
+                        b.download_button(t("dl"), data=it["bytes"], file_name=it["out_name"],
                                           mime=cv.MODES[res["mode"]].mime, key=f"dl_{i}", on_click="ignore")
                 else:
                     a.markdown(f'<div class="row-res"><span class="st-ic er">!</span><span class="n">{it["src"]}</span>'
                                f'<span class="m">{it["error"]}</span></div>', unsafe_allow_html=True)
-        if st.button("Clear and start over"):
+        if st.button(t("clear")):
             ss.result, ss.uploader_n = None, ss.uploader_n + 1
             st.rerun()
 
 if ss.show_pro:
     ss.show_pro = False
-    pro_dialog(usage["limit"])
+    st.dialog(t("dlg_title"))(pro_dialog)(usage["limit"])
 
 st.markdown(
     '<div class="foot"><span>convert-img · <strong>by nosotros</strong></span>'
