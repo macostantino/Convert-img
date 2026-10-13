@@ -1,4 +1,4 @@
-"""convert-img · By Margarita IT
+"""convert-img · by nosotros
 Convertidor de imágenes en Streamlit: HEIC to JPG y PNG to CMYK.
 Ejecutar:  streamlit run app.py
 """
@@ -22,7 +22,7 @@ LOGO = ROOT / "assets" / "logo.png"
 ICONS = {"heic": ":material/image:", "png": ":material/palette:"}
 MAX_ROWS_WITH_BUTTON = 100          # filas con botón de descarga individual
 
-st.set_page_config(page_title="convert-img · Margarita IT", page_icon=str(FAVICON), layout="wide",
+st.set_page_config(page_title="convert-img · by nosotros", page_icon=str(FAVICON), layout="wide",
                    initial_sidebar_state="collapsed")
 
 # ------------------------------------------------------------------ estilos
@@ -302,5 +302,5 @@ if ss.show_pro:
     pro_dialog(usage["limit"])
 
 st.markdown(
-    '<div class="foot"><span>convert-img · <strong>By Margarita IT</strong></span>'
-    "<span>© 2026 Margarita IT Technology</span></div>", unsafe_allow_html=True)
+    '<div class="foot"><span>convert-img · <strong>by nosotros</strong></span>'
+    "<span>© 2026 nosotros</span></div>", unsafe_allow_html=True)

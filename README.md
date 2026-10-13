@@ -1,4 +1,4 @@
-# convert-img · By Margarita IT
+# convert-img · by nosotros
 
 Convertidor de imágenes en **Streamlit** con dos conversiones, elegibles con un botón:
 
@@ -25,7 +25,7 @@ Versión gratuita: límite de 300 conversiones, luego avisa para actualizar a PR
 | `converters.py` | Lógica de conversión pura (Pillow + pillow-heif + numpy). Sin Streamlit, testeable. |
 | `licensing.py` | Contador de archivos convertidos (límite opcional) (por sesión o en archivo firmado). |
 | `tests/` | Tests de pytest (conversión, colores CMYK, EXIF, DPI, límite). |
-| `.streamlit/config.toml` | Tema (colores de Margarita IT) y límite de subida (200 MB por archivo). |
+| `.streamlit/config.toml` | Tema (colores de la marca) y límite de subida (200 MB por archivo). |
 | `.github/workflows/ci.yml` | Corre los tests en cada push. |
 | `.claude/settings.json` + `scripts/autopush.sh` | Auto-commit y push a GitHub cuando Claude Code termina cada respuesta. |
 

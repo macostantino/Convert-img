@@ -1,4 +1,4 @@
-# convert-img (Margarita IT)
+# convert-img (by nosotros)
 
 App Streamlit para convertir imágenes: HEIC→JPG y PNG→CMYK (TIFF). UI y textos visibles **en inglés**.
 
