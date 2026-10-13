@@ -1,0 +1,4 @@
+streamlit>=1.43,<2
+pillow>=10.4
+pillow-heif>=0.18
+numpy>=1.26
