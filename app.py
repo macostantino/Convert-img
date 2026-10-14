@@ -19,8 +19,8 @@ import licensing as lic
 ROOT = Path(__file__).parent
 FAVICON = ROOT / "assets" / "favicon.png"
 LOGO = ROOT / "assets" / "logo.png"
-ICONS = {"heic": ":material/image:", "png220": ":material/palette:", "png200": ":material/palette:",
-         "png180": ":material/palette:"}
+ICONS = {"heic": ":material/image:", "png": ":material/palette:"}
+TICS = ("220", "200", "180")        # perfiles WAN-IFRA; el primero (220) es el recomendado
 MAX_ROWS_WITH_BUTTON = 100          # filas con botón de descarga individual
 
 st.set_page_config(page_title="convert-img · by nosotros", page_icon=str(FAVICON), layout="wide",
@@ -97,9 +97,9 @@ LANGS = {"es": "🇪🇸 Español", "en": "🇬🇧 English"}
 TEXTS = {
     "es": {
         "heic_label": "HEIC a JPG", "heic_sub": "Fotos de iPhone a JPEG estándar",
-        "png220_label": "PNG a CMYK · TIC 220", "png220_sub": "Papel de diario WAN-IFRA (recomendado)",
-        "png200_label": "PNG a CMYK · TIC 200", "png200_sub": "Papel de diario WAN-IFRA",
-        "png180_label": "PNG a CMYK · TIC 180", "png180_sub": "Papel de diario WAN-IFRA",
+        "png_label": "PNG a CMYK", "png_sub": "TIFF CMYK para papel de diario",
+        "profile": "Perfil de conversión", "tic220": "WAN-IFRA TIC 220 (recomendado)", "tic200": "WAN-IFRA TIC 200",
+        "tic180": "WAN-IFRA TIC 180",
         "heic_title": "<span>HEIC a JPG</span> Convertidor", "png_title": "<span>PNG a CMYK</span> Convertidor",
         "heic_lead": "Sube tus fotos HEIC, pulsa <b>Convertir</b> y descarga los JPG terminados. Todo se ejecuta en esta sesión de la app.",
         "png_lead": "Sube tus imágenes PNG, pulsa <b>Convertir</b> y descarga archivos TIFF CMYK listos para imprimir. Todo se ejecuta en esta sesión de la app.",
@@ -129,9 +129,9 @@ TEXTS = {
     },
     "en": {
         "heic_label": "HEIC to JPG", "heic_sub": "iPhone photos to standard JPEG",
-        "png220_label": "PNG to CMYK · TIC 220", "png220_sub": "WAN-IFRA newsprint (recommended)",
-        "png200_label": "PNG to CMYK · TIC 200", "png200_sub": "WAN-IFRA newsprint",
-        "png180_label": "PNG to CMYK · TIC 180", "png180_sub": "WAN-IFRA newsprint",
+        "png_label": "PNG to CMYK", "png_sub": "CMYK TIFF for newsprint",
+        "profile": "Conversion profile", "tic220": "WAN-IFRA TIC 220 (recommended)", "tic200": "WAN-IFRA TIC 200",
+        "tic180": "WAN-IFRA TIC 180",
         "heic_title": "<span>HEIC to JPG</span> Converter", "png_title": "<span>PNG to CMYK</span> Converter",
         "heic_lead": "Upload your HEIC photos, press <b>Convert</b> and download the finished JPGs. Everything runs in this app session.",
         "png_lead": "Upload your PNG images, press <b>Convert</b> and download print-ready CMYK TIFF files. Everything runs in this app session.",
@@ -217,7 +217,8 @@ def pro_dialog(limit: int) -> None:
 
 # ------------------------------------------------------------------ estado
 ss = st.session_state
-ss.setdefault("mode", "png220")
+ss.setdefault("mode", "heic")
+ss.setdefault("tic", "220")
 ss.setdefault("uploader_n", 0)
 ss.setdefault("result", None)
 ss.setdefault("show_pro", False)
@@ -251,16 +252,16 @@ with c3:
     if pick and pick != ss.lang:        # al des-seleccionar se mantiene el idioma actual
         ss.lang = pick
         st.rerun()
-mode = cv.MODES[ss.mode]
-grp = "heic" if ss.mode == "heic" else "png"          # los tres modos PNG comparten título y textos
-c2.markdown(f'<div class="hero"><h1>{t(grp + "_title")}</h1><p>{t(grp + "_lead")}</p></div>',
+cmode = "heic" if ss.mode == "heic" else f"png{ss.tic}"   # modo de conversión real (el PNG depende del perfil)
+mode = cv.MODES[cmode]
+c2.markdown(f'<div class="hero"><h1>{t(ss.mode + "_title")}</h1><p>{t(ss.mode + "_lead")}</p></div>',
             unsafe_allow_html=True)
 
 # ------------------------------------------------------------------ selector de conversión
-for col, m in zip(st.columns(len(cv.MODES)), cv.MODES.values()):
+for col, key in zip(st.columns(2), ("heic", "png")):
     with col:
-        st.button(f"**{t(m.key + '_label')}**  \n{t(m.key + '_sub')}", key=f"mode_{m.key}", icon=ICONS[m.key], use_container_width=True,
-                  type="primary" if ss.mode == m.key else "secondary", on_click=set_mode, args=(m.key,),
+        st.button(f"**{t(key + '_label')}**  \n{t(key + '_sub')}", key=f"mode_{key}", icon=ICONS[key], use_container_width=True,
+                  type="primary" if ss.mode == key else "secondary", on_click=set_mode, args=(key,),
                   )
 
 # ------------------------------------------------------------------ carga y opciones
@@ -268,14 +269,15 @@ with st.container(border=True):
     st.markdown(f"##### {t('step1')}")
     files = st.file_uploader(
         t("uploader", noun=mode.noun),
-        type=cv.accepted_types(ss.mode), accept_multiple_files=True,
+        type=cv.accepted_types(cmode), accept_multiple_files=True,
         key=f"up_{ss.mode}_{ss.uploader_n}", label_visibility="collapsed",
     )
     quality, black_pct = 92, 0
     if ss.mode == "heic":
         quality = st.slider(t("quality"), 50, 100, 92, format="%d%%")
     else:
-        st.markdown(f'<div class="note">{t("png_note", tic=ss.mode[3:])}</div>', unsafe_allow_html=True)
+        st.radio(t("profile"), TICS, key="tic", horizontal=True, format_func=lambda v: t("tic" + v))
+        st.markdown(f'<div class="note">{t("png_note", tic=ss.tic)}</div>', unsafe_allow_html=True)
         black_pct = st.slider(t("black"), 0, 15, 5, format="%d%%", help=t("black_help"))
 
 # ------------------------------------------------------------------ conversión
@@ -297,7 +299,7 @@ with st.container(border=True):
     status_slot = st.empty()
     if ss.result is None:
         prog_slot.progress(0.0, text=t("idle"))
-    elif not go and ss.result["mode"] == ss.mode:
+    elif not go and ss.result["grp"] == ss.mode:
         prog_slot.progress(ss.result["prog"][0], text=ss.result["prog"][1])
 
     if go:
@@ -312,9 +314,9 @@ with st.container(border=True):
             t1 = time.time()
             try:
                 data = f.getvalue()
-                out = cv.convert(ss.mode, data, quality, black_pct)
+                out = cv.convert(cmode, data, quality, black_pct)
                 lic.consume(store, usage["limit"])
-                items.append({"ok": True, "src": f.name, "out_name": cv.output_name(f.name, ss.mode, taken),
+                items.append({"ok": True, "src": f.name, "out_name": cv.output_name(f.name, cmode, taken),
                               "bytes": out, "in_size": len(data), "ms": (time.time() - t1) * 1000})
                 ok += 1
             except Exception as e:  # archivo dañado, formato no soportado, etc.
@@ -329,7 +331,7 @@ with st.container(border=True):
             for it in items:
                 if it["ok"]:
                     z.writestr(it["out_name"], it["bytes"])
-        ss.result = {"mode": ss.mode, "items": items, "ok": ok, "er": er, "secs": secs, "prog": prog,
+        ss.result = {"grp": ss.mode, "mode": cmode, "items": items, "ok": ok, "er": er, "secs": secs, "prog": prog,
                      "zip": buf.getvalue(), "stamp": datetime.now().strftime("%Y%m%d-%H%M%S")}
         ss.show_pro = limit_hit
         usage = lic.info(store)
@@ -338,7 +340,7 @@ with st.container(border=True):
 
 # ------------------------------------------------------------------ resultados y descarga
 res = ss.result
-if res and res["mode"] == ss.mode:
+if res and res["grp"] == ss.mode:
     with st.container(border=True):
         st.markdown(f"##### {t('step3')}")
         st.markdown(
