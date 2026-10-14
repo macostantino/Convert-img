@@ -28,13 +28,14 @@ class Mode:
     out_ext: str          # extensión de salida (con punto)
     out_label: str
     mime: str
+    out_suffix: str = ""  # se agrega al nombre antes de la extensión (ej. "_CMYK")
 
 
 MODES = {
     "heic": Mode("heic", "HEIC to JPG", "iPhone photos to standard JPEG", "HEIC",
                  ("heic", "heif"), ".jpg", "JPG", "image/jpeg"),
     "png": Mode("png", "PNG to CMYK", "Print-ready CMYK TIFF", "PNG",
-                ("png",), ".tif", "CMYK TIFF", "image/tiff"),
+                ("png",), ".tif", "CMYK TIFF", "image/tiff", "_CMYK"),
 }
 
 
@@ -109,6 +110,7 @@ def output_name(filename: str, mode: str, taken: set[str] | None = None) -> str:
     """Nombre de salida con la extensión del modo; evita choques (a.jpg, a (2).jpg, ...)."""
     stem = PurePath(filename).stem or "image"
     ext = MODES[mode].out_ext
+    stem += MODES[mode].out_suffix
     name, n = stem + ext, 1
     if taken is not None:
         while name.lower() in taken:
