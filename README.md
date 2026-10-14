@@ -3,7 +3,7 @@
 Convertidor de imágenes en **Streamlit** con dos conversiones, elegibles con un botón:
 
 - **HEIC to JPG** — fotos de iPhone a JPEG (conserva EXIF e ICC, corrige la orientación, calidad ajustable).
-- **PNG to CMYK** — TIFF CMYK sin pérdida para papel de diario (8 bits/canal, Deflate; conserva los DPI; transparencias sobre blanco). Tres botones, uno por perfil ICC WAN-IFRA (TIC 220 recomendado, 200 y 180) de `profiles/`, que se incrusta en el TIFF; el negro puro sale solo con tinta K.
+- **PNG to CMYK** — TIFF CMYK sin pérdida para papel de diario (8 bits/canal, Deflate; conserva los DPI; transparencias sobre blanco). Al elegirlo aparecen el perfil ICC WAN-IFRA de `profiles/` (TIC 220 recomendado por defecto, 200 y 180) y el umbral de negro puro, que se incrusta en el TIFF; el negro puro sale solo con tinta K.
 
 Flujo: **Upload** de archivos → **Convert** (barra de progreso por archivo) → **Download** (un .zip o archivo por archivo;
 el navegador los guarda en la carpeta *Descargas* de la computadora desde la que se usa la app).
