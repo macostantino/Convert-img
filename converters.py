@@ -33,7 +33,7 @@ class Mode:
 
 MODES = {
     "heic": Mode("heic", "HEIC to JPG", "iPhone photos to standard JPEG", "HEIC",
-                 ("heic", "heif"), ".jpg", "JPG", "image/jpeg"),
+                 ("heic", "heif"), ".jpg", "JPG", "image/jpeg", "_JPG"),
     "png": Mode("png", "PNG to CMYK", "Print-ready CMYK TIFF", "PNG",
                 ("png",), ".tif", "CMYK TIFF", "image/tiff", "_CMYK"),
 }

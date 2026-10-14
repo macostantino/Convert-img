@@ -125,8 +125,8 @@ def test_invalid_data_raises():
 # ------------------------------------------------------------- nombres
 def test_output_name_and_collisions():
     taken = set()
-    assert cv.output_name("IMG_1.HEIC", "heic", taken) == "IMG_1.jpg"
-    assert cv.output_name("img_1.heif", "heic", taken) == "img_1 (2).jpg"
+    assert cv.output_name("IMG_1.HEIC", "heic", taken) == "IMG_1_JPG.jpg"
+    assert cv.output_name("img_1.heif", "heic", taken) == "img_1_JPG (2).jpg"
     assert cv.output_name("a.png", "png") == "a_CMYK.tif"
 
 
