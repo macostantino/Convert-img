@@ -127,7 +127,7 @@ def test_output_name_and_collisions():
     taken = set()
     assert cv.output_name("IMG_1.HEIC", "heic", taken) == "IMG_1.jpg"
     assert cv.output_name("img_1.heif", "heic", taken) == "img_1 (2).jpg"
-    assert cv.output_name("a.png", "png") == "a.tif"
+    assert cv.output_name("a.png", "png") == "a_CMYK.tif"
 
 
 # ------------------------------------------------------------- límite
