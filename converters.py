@@ -2,7 +2,7 @@
 
 Modos:
   heic -> HEIC/HEIF a JPG (conserva EXIF e ICC; corrige la orientación)
-  png220 / png200 / png180 -> PNG a CMYK para papel de diario (TIFF sin pérdida, 8 bits/canal, compresión
+  png220 / png200 / png180 (y jpg220 / jpg200 / jpg180) -> PNG (o JPG) a CMYK para papel de diario (TIFF sin pérdida, 8 bits/canal, compresión
       Deflate) con el perfil ICC WAN-IFRA de 220 / 200 / 180 % de tinta total (carpeta profiles/)
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ from functools import lru_cache
 from pathlib import Path, PurePath
 
 import numpy as np
-from PIL import Image, ImageCms
+from PIL import Image, ImageCms, ImageOps
 
 import pillow_heif
 
@@ -37,13 +37,13 @@ class Mode:
 MODES = {
     "heic": Mode("heic", "HEIC to JPG", "iPhone photos to standard JPEG", "HEIC",
                  ("heic", "heif"), ".jpg", "JPG", "image/jpeg", "_JPG"),
-    "png220": Mode("png220", "PNG to CMYK · TIC 220", "WAN-IFRA newsprint (recommended)", "PNG",
-                   ("png",), ".tif", "CMYK TIFF", "image/tiff", "_CMYK", "WANIFRA_NP26_TIC220.icc"),
-    "png200": Mode("png200", "PNG to CMYK · TIC 200", "WAN-IFRA newsprint", "PNG",
-                   ("png",), ".tif", "CMYK TIFF", "image/tiff", "_CMYK", "WANIFRA_NP26_TIC200.icc"),
-    "png180": Mode("png180", "PNG to CMYK · TIC 180", "WAN-IFRA newsprint", "PNG",
-                   ("png",), ".tif", "CMYK TIFF", "image/tiff", "_CMYK", "WANIFRA_NP26_TIC180.icc"),
 }
+# PNG y JPG a CMYK: un modo por perfil ICC WAN-IFRA (TIC = tinta total máxima)
+for _fmt, _exts in (("png", ("png",)), ("jpg", ("jpg", "jpeg"))):
+    for _tic in ("220", "200", "180"):
+        MODES[f"{_fmt}{_tic}"] = Mode(f"{_fmt}{_tic}", f"{_fmt.upper()} to CMYK · TIC {_tic}", "WAN-IFRA newsprint",
+                                      _fmt.upper(), _exts, ".tif", "CMYK TIFF", "image/tiff", "_CMYK",
+                                      f"WANIFRA_NP26_TIC{_tic}.icc")
 
 
 # ---------------------------------------------------------------- HEIC -> JPG
@@ -98,7 +98,7 @@ def _transform(profile: str, src_icc: bytes | None):
 
 
 def png_to_cmyk_tiff(data: bytes, chunk_rows: int = 512, black_pct: float = 0, profile: str = "") -> bytes:
-    """PNG -> TIFF CMYK. Los píxeles con max(R,G,B) <= black_pct % de 255 (y el negro exacto) se fuerzan a
+    """PNG / JPG -> TIFF CMYK. Los píxeles con max(R,G,B) <= black_pct % de 255 (y el negro exacto) se fuerzan a
        negro puro (C=M=Y=0, K=100%). Las transparencias se aplanan sobre fondo blanco. Conserva los DPI del PNG
        (300 si no trae).
        - profile = archivo ICC CMYK de profiles/: el resto de los colores se convierten con ese perfil
@@ -110,6 +110,7 @@ def png_to_cmyk_tiff(data: bytes, chunk_rows: int = 512, black_pct: float = 0, p
     dpi = src.info.get("dpi") or (300, 300)
     dpi = (round(float(dpi[0])), round(float(dpi[1])))
     src_icc = src.info.get("icc_profile") if src.mode in ("RGB", "RGBA") else None
+    src = ImageOps.exif_transpose(src)                  # fotos JPG: respetar la orientación EXIF
     rgba = _to_8bit_rgba(src)
     w, h = rgba.size
     out = np.empty((h, w, 4), dtype=np.uint8)
