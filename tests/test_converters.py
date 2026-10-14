@@ -107,6 +107,29 @@ def test_icc_chunking_gives_same_result():
     assert np.array_equal(a, b)
 
 
+def jpg_bytes(arr, **kw):
+    b = io.BytesIO(); Image.fromarray(arr).save(b, "JPEG", quality=95, **kw); return b.getvalue()
+
+
+@pytest.mark.parametrize("mode", ["jpg220", "jpg200", "jpg180"])
+def test_jpg_to_cmyk_same_options_as_png(mode):
+    px = np.zeros((16, 16, 3), dtype=np.uint8)
+    px[:, 8:] = (200, 30, 30)
+    im, c = tiff_cmyk(cv.convert(mode, jpg_bytes(px), black_pct=5))
+    assert cv.accepted_types(mode) == ["jpg", "jpeg"]
+    assert im.mode == "CMYK" and im.info.get("icc_profile")
+    assert (c[2, 2] == [0, 0, 0, 255]).all()                 # el negro del JPG (con ruido de compresión) queda en K100
+    assert c[2, 12, :3].max() > 0
+    assert cv.output_name("foto.JPG", mode) == "foto_CMYK.tif"
+
+
+def test_jpg_exif_orientation_is_applied():
+    px = np.zeros((10, 20, 3), dtype=np.uint8)               # ancho 20, alto 10
+    exif = Image.Exif(); exif[0x0112] = 6                    # rotar 90 horas
+    _, c = tiff_cmyk(cv.convert("jpg220", jpg_bytes(px, exif=exif.tobytes())))
+    assert c.shape[:2] == (20, 10)
+
+
 # ------------------------------------------------------------- HEIC -> JPG
 def make_heic(size=(64, 48), exif_orientation=None):
     im = Image.fromarray(np.random.default_rng(4).integers(0, 256, (size[1], size[0], 3), dtype=np.uint8))

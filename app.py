@@ -19,7 +19,7 @@ import licensing as lic
 ROOT = Path(__file__).parent
 FAVICON = ROOT / "assets" / "favicon.png"
 LOGO = ROOT / "assets" / "logo.png"
-ICONS = {"heic": ":material/image:", "png": ":material/palette:"}
+ICONS = {"heic": ":material/image:", "png": ":material/palette:", "jpg": ":material/photo_camera:"}
 TICS = ("220", "200", "180")        # perfiles WAN-IFRA; el primero (220) es el recomendado
 MAX_ROWS_WITH_BUTTON = 100          # filas con botón de descarga individual
 
@@ -98,17 +98,20 @@ TEXTS = {
     "es": {
         "heic_label": "HEIC a JPG", "heic_sub": "Fotos de iPhone a JPEG estándar",
         "png_label": "PNG a CMYK", "png_sub": "TIFF CMYK para papel de diario",
+        "jpg_label": "JPG a CMYK", "jpg_sub": "TIFF CMYK para papel de diario",
         "profile": "Perfil de conversión", "tic220": "WAN-IFRA TIC 220 (recomendado)", "tic200": "WAN-IFRA TIC 200",
         "tic180": "WAN-IFRA TIC 180",
         "heic_title": "<span>HEIC a JPG</span> Convertidor", "png_title": "<span>PNG a CMYK</span> Convertidor",
+        "jpg_title": "<span>JPG a CMYK</span> Convertidor",
         "heic_lead": "Sube tus fotos HEIC, pulsa <b>Convertir</b> y descarga los JPG terminados. Todo se ejecuta en esta sesión de la app.",
         "png_lead": "Sube tus imágenes PNG, pulsa <b>Convertir</b> y descarga archivos TIFF CMYK listos para imprimir. Todo se ejecuta en esta sesión de la app.",
+        "jpg_lead": "Sube tus imágenes JPG, pulsa <b>Convertir</b> y descarga archivos TIFF CMYK listos para imprimir. Todo se ejecuta en esta sesión de la app.",
         "step1": "1 · Sube tus archivos", "step2": "2 · Convierte", "step3": "3 · Descarga",
         "uploader": "Selecciona o arrastra tus archivos {noun}",
         "quality": "Calidad del JPG",
         "png_note": "La salida es un <b>TIFF CMYK</b> sin pérdida (8 bits por canal, compresión Deflate), convertido con el perfil ICC "
                     "<b>WAN-IFRA para papel de diario (ISO 12647-3), TIC {tic}%</b>, que queda incrustado en el archivo. "
-                    "El negro puro sale solo con tinta K. Las zonas transparentes se aplanan sobre blanco y se conservan los DPI del PNG (300 si no trae).",
+                    "El negro puro sale solo con tinta K. Las zonas transparentes se aplanan sobre blanco y se conservan los DPI de la imagen (300 si no trae).",
         "black": "Umbral de negro puro",
         "black_help": "Los píxeles así de oscuros (o más) pasan a negro puro: K 100%, sin C, M ni Y. Con 0% solo el negro exacto (RGB 0,0,0) pasa a negro puro.",
         "only_n": "Solo se convertirán **{left}** de {n} archivos (límite de la versión gratuita).",
@@ -130,17 +133,20 @@ TEXTS = {
     "en": {
         "heic_label": "HEIC to JPG", "heic_sub": "iPhone photos to standard JPEG",
         "png_label": "PNG to CMYK", "png_sub": "CMYK TIFF for newsprint",
+        "jpg_label": "JPG to CMYK", "jpg_sub": "CMYK TIFF for newsprint",
         "profile": "Conversion profile", "tic220": "WAN-IFRA TIC 220 (recommended)", "tic200": "WAN-IFRA TIC 200",
         "tic180": "WAN-IFRA TIC 180",
         "heic_title": "<span>HEIC to JPG</span> Converter", "png_title": "<span>PNG to CMYK</span> Converter",
+        "jpg_title": "<span>JPG to CMYK</span> Converter",
         "heic_lead": "Upload your HEIC photos, press <b>Convert</b> and download the finished JPGs. Everything runs in this app session.",
         "png_lead": "Upload your PNG images, press <b>Convert</b> and download print-ready CMYK TIFF files. Everything runs in this app session.",
+        "jpg_lead": "Upload your JPG images, press <b>Convert</b> and download print-ready CMYK TIFF files. Everything runs in this app session.",
         "step1": "1 · Upload your files", "step2": "2 · Convert", "step3": "3 · Download",
         "uploader": "Select or drop your {noun} files",
         "quality": "JPG quality",
         "png_note": "Output is a lossless <b>CMYK TIFF</b> (8 bits per channel, Deflate compression) converted with the "
                     "<b>WAN-IFRA newsprint ICC profile (ISO 12647-3), TIC {tic}%</b>, which is embedded in the file. "
-                    "Pure black uses the K ink only. Transparent areas are flattened on white and the PNG's DPI is kept (300 if it has none).",
+                    "Pure black uses the K ink only. Transparent areas are flattened on white and the image's DPI is kept (300 if it has none).",
         "black": "Pure black threshold",
         "black_help": "Pixels this dark (or darker) become pure black: K 100%, with no C, M or Y. With 0%, only exact black (RGB 0,0,0) becomes pure black.",
         "only_n": "Only **{left}** of {n} files will be converted (free version limit).",
@@ -252,13 +258,13 @@ with c3:
     if pick and pick != ss.lang:        # al des-seleccionar se mantiene el idioma actual
         ss.lang = pick
         st.rerun()
-cmode = "heic" if ss.mode == "heic" else f"png{ss.tic}"   # modo de conversión real (el PNG depende del perfil)
+cmode = "heic" if ss.mode == "heic" else f"{ss.mode}{ss.tic}"   # modo real: PNG/JPG dependen del perfil
 mode = cv.MODES[cmode]
 c2.markdown(f'<div class="hero"><h1>{t(ss.mode + "_title")}</h1><p>{t(ss.mode + "_lead")}</p></div>',
             unsafe_allow_html=True)
 
 # ------------------------------------------------------------------ selector de conversión
-for col, key in zip(st.columns(2), ("heic", "png")):
+for col, key in zip(st.columns(3), ("heic", "png", "jpg")):
     with col:
         st.button(f"**{t(key + '_label')}**  \n{t(key + '_sub')}", key=f"mode_{key}", icon=ICONS[key], use_container_width=True,
                   type="primary" if ss.mode == key else "secondary", on_click=set_mode, args=(key,),
