@@ -2,16 +2,18 @@
 
 Modos:
   heic -> HEIC/HEIF a JPG (conserva EXIF e ICC; corrige la orientación)
-  png  -> PNG a CMYK (TIFF sin pérdida, 8 bits/canal, compresión Deflate)
+  png220 / png200 / png180 -> PNG a CMYK para papel de diario (TIFF sin pérdida, 8 bits/canal, compresión
+      Deflate) con el perfil ICC WAN-IFRA de 220 / 200 / 180 % de tinta total (carpeta profiles/)
 """
 from __future__ import annotations
 
 import io
 from dataclasses import dataclass
-from pathlib import PurePath
+from functools import lru_cache
+from pathlib import Path, PurePath
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageCms
 
 import pillow_heif
 
@@ -29,13 +31,18 @@ class Mode:
     out_label: str
     mime: str
     out_suffix: str = ""  # se agrega al nombre antes de la extensión (ej. "_CMYK")
+    profile: str = ""     # perfil ICC CMYK (archivo en profiles/); vacío = conversión matemática
 
 
 MODES = {
     "heic": Mode("heic", "HEIC to JPG", "iPhone photos to standard JPEG", "HEIC",
                  ("heic", "heif"), ".jpg", "JPG", "image/jpeg", "_JPG"),
-    "png": Mode("png", "PNG to CMYK", "Print-ready CMYK TIFF", "PNG",
-                ("png",), ".tif", "CMYK TIFF", "image/tiff", "_CMYK"),
+    "png220": Mode("png220", "PNG to CMYK · TIC 220", "WAN-IFRA newsprint (recommended)", "PNG",
+                   ("png",), ".tif", "CMYK TIFF", "image/tiff", "_CMYK", "WANIFRA_NP26_TIC220.icc"),
+    "png200": Mode("png200", "PNG to CMYK · TIC 200", "WAN-IFRA newsprint", "PNG",
+                   ("png",), ".tif", "CMYK TIFF", "image/tiff", "_CMYK", "WANIFRA_NP26_TIC200.icc"),
+    "png180": Mode("png180", "PNG to CMYK · TIC 180", "WAN-IFRA newsprint", "PNG",
+                   ("png",), ".tif", "CMYK TIFF", "image/tiff", "_CMYK", "WANIFRA_NP26_TIC180.icc"),
 }
 
 
@@ -65,31 +72,69 @@ def _to_8bit_rgba(im: Image.Image) -> Image.Image:
     return im.convert("RGBA")
 
 
-def png_to_cmyk_tiff(data: bytes, chunk_rows: int = 512, black_pct: float = 0) -> bytes:
-    """RGB -> CMYK matemático (sin perfil ICC) con reemplazo total de gris por negro:
-         K = 255 - max(R,G,B);  C,M,Y = (max - canal) / max * 255
-       Los píxeles con max(R,G,B) <= black_pct % de 255 se fuerzan a negro puro (C=M=Y=0, K=100%).
-       Las transparencias se aplanan sobre fondo blanco. Conserva los DPI del PNG (300 si no trae)."""
+PROFILES_DIR = Path(__file__).parent / "profiles"
+
+
+@lru_cache(maxsize=8)
+def _profile_bytes(name: str) -> bytes:
+    return (PROFILES_DIR / name).read_bytes()
+
+
+@lru_cache(maxsize=16)
+def _transform(profile: str, src_icc: bytes | None):
+    """RGB -> CMYK con el perfil de salida; colorimétrico relativo + compensación de punto negro."""
+    dst = ImageCms.ImageCmsProfile(io.BytesIO(_profile_bytes(profile)))
+    src = ImageCms.createProfile("sRGB")
+    if src_icc:
+        try:
+            cand = ImageCms.ImageCmsProfile(io.BytesIO(src_icc))
+            if cand.profile.xcolor_space.strip() == "RGB":
+                src = cand
+        except Exception:                               # perfil incrustado dañado: se asume sRGB
+            pass
+    return ImageCms.buildTransform(src, dst, "RGB", "CMYK",
+                                   renderingIntent=ImageCms.Intent.RELATIVE_COLORIMETRIC,
+                                   flags=ImageCms.Flags.BLACKPOINTCOMPENSATION)
+
+
+def png_to_cmyk_tiff(data: bytes, chunk_rows: int = 512, black_pct: float = 0, profile: str = "") -> bytes:
+    """PNG -> TIFF CMYK. Los píxeles con max(R,G,B) <= black_pct % de 255 (y el negro exacto) se fuerzan a
+       negro puro (C=M=Y=0, K=100%). Las transparencias se aplanan sobre fondo blanco. Conserva los DPI del PNG
+       (300 si no trae).
+       - profile = archivo ICC CMYK de profiles/: el resto de los colores se convierten con ese perfil
+         (colorimétrico relativo + compensación de punto negro) y el perfil se incrusta en el TIFF.
+       - sin profile: conversión matemática, sin ICC:
+            K = 255 - max(R,G,B);  C,M,Y = (max - canal) / max * 255"""
     black_max = round(max(0.0, black_pct) / 100 * 255)
     src = Image.open(io.BytesIO(data))
     dpi = src.info.get("dpi") or (300, 300)
     dpi = (round(float(dpi[0])), round(float(dpi[1])))
+    src_icc = src.info.get("icc_profile") if src.mode in ("RGB", "RGBA") else None
     rgba = _to_8bit_rgba(src)
     w, h = rgba.size
     out = np.empty((h, w, 4), dtype=np.uint8)
     arr = np.asarray(rgba)
+    tr = _transform(profile, src_icc) if profile else None
     for y0 in range(0, h, chunk_rows):                  # por bloques: no duplica la memoria de imágenes grandes
         blk = arr[y0:y0 + chunk_rows].astype(np.float32)
         a = blk[..., 3:4] / 255.0
         rgb = blk[..., :3] * a + 255.0 * (1.0 - a)
+        if tr is not None:
+            rgb8 = np.ascontiguousarray(np.rint(rgb).astype(np.uint8))
+            cm = np.asarray(ImageCms.applyTransform(Image.fromarray(rgb8, "RGB"), tr))
+            black = rgb8.max(axis=2) <= black_max       # casi negro -> negro puro (solo tinta K)
+            cm = np.where(black[..., None], np.array([0, 0, 0, 255], dtype=np.uint8), cm)
+            out[y0:y0 + chunk_rows] = cm
+            continue
         mx = rgb.max(axis=2, keepdims=True)
         mx = np.where(mx <= black_max, 0.0, mx)         # casi negro -> negro puro (solo tinta K)
         safe = np.where(mx > 0, mx, 1.0)
         cmy = np.where(mx > 0, (mx - rgb) / safe * 255.0, 0.0)
         out[y0:y0 + chunk_rows, :, :3] = np.rint(cmy).astype(np.uint8)
         out[y0:y0 + chunk_rows, :, 3:] = np.rint(255.0 - mx).astype(np.uint8)
+    kw = {"icc_profile": _profile_bytes(profile)} if profile else {}
     buf = io.BytesIO()
-    Image.fromarray(out, "CMYK").save(buf, format="TIFF", compression="tiff_adobe_deflate", dpi=dpi)
+    Image.fromarray(out, "CMYK").save(buf, format="TIFF", compression="tiff_adobe_deflate", dpi=dpi, **kw)
     return buf.getvalue()
 
 
@@ -97,8 +142,8 @@ def png_to_cmyk_tiff(data: bytes, chunk_rows: int = 512, black_pct: float = 0) -
 def convert(mode: str, data: bytes, quality: int = 92, black_pct: float = 0) -> bytes:
     if mode == "heic":
         return heic_to_jpg(data, quality)
-    if mode == "png":
-        return png_to_cmyk_tiff(data, black_pct=black_pct)
+    if mode in MODES and MODES[mode].profile:
+        return png_to_cmyk_tiff(data, black_pct=black_pct, profile=MODES[mode].profile)
     raise ValueError(f"Unknown mode: {mode}")
 
 

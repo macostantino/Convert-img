@@ -87,6 +87,26 @@ def test_near_black_becomes_pure_k():
     assert c0[0, 2, 0] == 255                              # sin umbral, el casi negro tintado mezcla tintas
 
 
+@pytest.mark.parametrize("mode,tic", [("png220", 220), ("png200", 200), ("png180", 180)])
+def test_icc_profiles_black_is_pure_k_and_profile_embedded(mode, tic):
+    px = np.array([[[0, 0, 0], [10, 10, 10], [255, 255, 255], [200, 30, 30], [30, 120, 220]]], dtype=np.uint8)
+    out = cv.convert(mode, png_bytes(px), black_pct=5)
+    im, c = tiff_cmyk(out)
+    assert im.mode == "CMYK" and im.info.get("icc_profile")          # perfil incrustado
+    assert (c[0, 0] == [0, 0, 0, 255]).all() and (c[0, 1] == [0, 0, 0, 255]).all()
+    assert (c[0, 2] == 0).all()                                       # blanco = sin tinta
+    assert c[0, 3, :3].max() > 0 and c[0, 4, :3].max() > 0            # los colores conservan C/M/Y
+    assert c[0, 3:].astype(int).sum(axis=1).max() / 255 * 100 <= tic + 1   # respeta la tinta total del perfil
+
+
+def test_icc_chunking_gives_same_result():
+    rng = np.random.default_rng(5)
+    data = png_bytes(rng.integers(0, 256, (40, 30, 3), dtype=np.uint8))
+    a = tiff_cmyk(cv.png_to_cmyk_tiff(data, chunk_rows=512, profile="WANIFRA_NP26_TIC220.icc"))[1]
+    b = tiff_cmyk(cv.png_to_cmyk_tiff(data, chunk_rows=7, profile="WANIFRA_NP26_TIC220.icc"))[1]
+    assert np.array_equal(a, b)
+
+
 # ------------------------------------------------------------- HEIC -> JPG
 def make_heic(size=(64, 48), exif_orientation=None):
     im = Image.fromarray(np.random.default_rng(4).integers(0, 256, (size[1], size[0], 3), dtype=np.uint8))
@@ -117,7 +137,7 @@ def test_invalid_data_raises():
     with pytest.raises(Exception):
         cv.convert("heic", b"not an image")
     with pytest.raises(Exception):
-        cv.convert("png", b"not an image")
+        cv.convert("png220", b"not an image")
     with pytest.raises(ValueError):
         cv.convert("xyz", b"")
 
@@ -127,7 +147,7 @@ def test_output_name_and_collisions():
     taken = set()
     assert cv.output_name("IMG_1.HEIC", "heic", taken) == "IMG_1_JPG.jpg"
     assert cv.output_name("img_1.heif", "heic", taken) == "img_1_JPG (2).jpg"
-    assert cv.output_name("a.png", "png") == "a_CMYK.tif"
+    assert cv.output_name("a.png", "png220") == "a_CMYK.tif"
 
 
 # ------------------------------------------------------------- límite

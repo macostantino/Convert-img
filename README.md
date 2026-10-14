@@ -3,7 +3,7 @@
 Convertidor de imágenes en **Streamlit** con dos conversiones, elegibles con un botón:
 
 - **HEIC to JPG** — fotos de iPhone a JPEG (conserva EXIF e ICC, corrige la orientación, calidad ajustable).
-- **PNG to CMYK** — TIFF CMYK sin pérdida para imprenta (8 bits/canal, Deflate; conserva los DPI; transparencias sobre blanco).
+- **PNG to CMYK** — TIFF CMYK sin pérdida para papel de diario (8 bits/canal, Deflate; conserva los DPI; transparencias sobre blanco). Tres botones, uno por perfil ICC WAN-IFRA (TIC 220 recomendado, 200 y 180) de `profiles/`, que se incrusta en el TIFF; el negro puro sale solo con tinta K.
 
 Flujo: **Upload** de archivos → **Convert** (barra de progreso por archivo) → **Download** (un .zip o archivo por archivo;
 el navegador los guarda en la carpeta *Descargas* de la computadora desde la que se usa la app).
@@ -62,4 +62,4 @@ Versión gratuita: límite de 300 conversiones, luego avisa para actualizar a PR
   archivos firmados del servidor y es compartido por todos los usuarios: útil para una instalación local de una sola persona, no para
   una app pública. Es un freno básico; un límite sólido por usuario requiere login/licencias.
 - **Memoria:** Streamlit Cloud tiene ~1 GB de RAM; los archivos se procesan en memoria, conviene lotes moderados.
-- **CMYK:** conversión matemática sin perfil ICC; el color puede diferir de una prueba de imprenta calibrada.
+- **CMYK:** conversión con perfil ICC (colorimétrico relativo + compensación de punto negro); el color puede diferir de una prueba de imprenta calibrada.
