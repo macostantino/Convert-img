@@ -19,7 +19,8 @@ import licensing as lic
 ROOT = Path(__file__).parent
 FAVICON = ROOT / "assets" / "favicon.png"
 LOGO = ROOT / "assets" / "logo.png"
-ICONS = {"heic": ":material/image:", "png": ":material/palette:"}
+ICONS = {"heic": ":material/image:", "png220": ":material/palette:", "png200": ":material/palette:",
+         "png180": ":material/palette:"}
 MAX_ROWS_WITH_BUTTON = 100          # filas con botón de descarga individual
 
 st.set_page_config(page_title="convert-img · by nosotros", page_icon=str(FAVICON), layout="wide",
@@ -44,13 +45,13 @@ h1,h2,h3{color:var(--navy);letter-spacing:-.02em}
 div[data-testid="stVerticalBlockBorderWrapper"]{background:#fff;border-radius:16px;border-color:var(--bd);
   box-shadow:0 1px 2px rgba(15,43,70,.05),0 8px 24px -12px rgba(15,43,70,.12)}
 /* botones de modo */
-.st-key-mode_heic button,.st-key-mode_png button{height:auto;min-height:74px;padding:14px 18px;border-radius:16px;
+[class*="st-key-mode_"] button{height:auto;min-height:74px;padding:14px 18px;border-radius:16px;
   justify-content:flex-start;text-align:left;white-space:normal;border:2px solid var(--bd);background:#fff;color:var(--navy);
   box-shadow:0 1px 2px rgba(15,43,70,.05),0 8px 24px -14px rgba(15,43,70,.12)}
-.st-key-mode_heic button:hover,.st-key-mode_png button:hover{border-color:var(--teal);color:var(--navy)}
-.st-key-mode_heic button p,.st-key-mode_png button p{font-size:.86rem;color:var(--mu);margin:0;line-height:1.35}
-.st-key-mode_heic button p strong,.st-key-mode_png button p strong{font-size:1.12rem;color:var(--navy)}
-.st-key-mode_heic button[kind="primary"],.st-key-mode_png button[kind="primary"]{border:2px solid transparent;
+[class*="st-key-mode_"] button:hover{border-color:var(--teal);color:var(--navy)}
+[class*="st-key-mode_"] button p{font-size:.86rem;color:var(--mu);margin:0;line-height:1.35}
+[class*="st-key-mode_"] button p strong{font-size:1.12rem;color:var(--navy)}
+[class*="st-key-mode_"] button[kind="primary"]{border:2px solid transparent;
   background:linear-gradient(#fff,#fff) padding-box,var(--grad) border-box;color:var(--navy);
   box-shadow:0 10px 26px -14px rgba(30,138,76,.55)}
 /* botones primarios (acciones) */
@@ -96,18 +97,20 @@ LANGS = {"es": "🇪🇸 Español", "en": "🇬🇧 English"}
 TEXTS = {
     "es": {
         "heic_label": "HEIC a JPG", "heic_sub": "Fotos de iPhone a JPEG estándar",
-        "png_label": "PNG a CMYK", "png_sub": "TIFF CMYK listo para imprimir",
+        "png220_label": "PNG a CMYK · TIC 220", "png220_sub": "Papel de diario WAN-IFRA (recomendado)",
+        "png200_label": "PNG a CMYK · TIC 200", "png200_sub": "Papel de diario WAN-IFRA",
+        "png180_label": "PNG a CMYK · TIC 180", "png180_sub": "Papel de diario WAN-IFRA",
         "heic_title": "<span>HEIC a JPG</span> Convertidor", "png_title": "<span>PNG a CMYK</span> Convertidor",
         "heic_lead": "Sube tus fotos HEIC, pulsa <b>Convertir</b> y descarga los JPG terminados. Todo se ejecuta en esta sesión de la app.",
         "png_lead": "Sube tus imágenes PNG, pulsa <b>Convertir</b> y descarga archivos TIFF CMYK listos para imprimir. Todo se ejecuta en esta sesión de la app.",
         "step1": "1 · Sube tus archivos", "step2": "2 · Convierte", "step3": "3 · Descarga",
         "uploader": "Selecciona o arrastra tus archivos {noun}",
         "quality": "Calidad del JPG",
-        "png_note": "La salida es un <b>TIFF CMYK</b> sin pérdida (8 bits por canal, compresión Deflate). "
-                    "Las zonas transparentes se aplanan sobre blanco y se conservan los DPI del PNG (300 si no trae). "
-                    "La conversión es matemática, sin perfil ICC.",
+        "png_note": "La salida es un <b>TIFF CMYK</b> sin pérdida (8 bits por canal, compresión Deflate), convertido con el perfil ICC "
+                    "<b>WAN-IFRA para papel de diario (ISO 12647-3), TIC {tic}%</b>, que queda incrustado en el archivo. "
+                    "El negro puro sale solo con tinta K. Las zonas transparentes se aplanan sobre blanco y se conservan los DPI del PNG (300 si no trae).",
         "black": "Umbral de negro puro",
-        "black_help": "Los píxeles así de oscuros (o más) pasan a negro puro: K 100%, sin C, M ni Y. Usa 0% para desactivarlo.",
+        "black_help": "Los píxeles así de oscuros (o más) pasan a negro puro: K 100%, sin C, M ni Y. Con 0% solo el negro exacto (RGB 0,0,0) pasa a negro puro.",
         "only_n": "Solo se convertirán **{left}** de {n} archivos (límite de la versión gratuita).",
         "convert": "Convertir",
         "no_files": "Aún no has subido archivos {noun}.",
@@ -126,18 +129,20 @@ TEXTS = {
     },
     "en": {
         "heic_label": "HEIC to JPG", "heic_sub": "iPhone photos to standard JPEG",
-        "png_label": "PNG to CMYK", "png_sub": "Print-ready CMYK TIFF",
+        "png220_label": "PNG to CMYK · TIC 220", "png220_sub": "WAN-IFRA newsprint (recommended)",
+        "png200_label": "PNG to CMYK · TIC 200", "png200_sub": "WAN-IFRA newsprint",
+        "png180_label": "PNG to CMYK · TIC 180", "png180_sub": "WAN-IFRA newsprint",
         "heic_title": "<span>HEIC to JPG</span> Converter", "png_title": "<span>PNG to CMYK</span> Converter",
         "heic_lead": "Upload your HEIC photos, press <b>Convert</b> and download the finished JPGs. Everything runs in this app session.",
         "png_lead": "Upload your PNG images, press <b>Convert</b> and download print-ready CMYK TIFF files. Everything runs in this app session.",
         "step1": "1 · Upload your files", "step2": "2 · Convert", "step3": "3 · Download",
         "uploader": "Select or drop your {noun} files",
         "quality": "JPG quality",
-        "png_note": "Output is a lossless <b>CMYK TIFF</b> (8 bits per channel, Deflate compression). "
-                    "Transparent areas are flattened on white and the PNG's DPI is kept (300 if it has none). "
-                    "The conversion is mathematical, without an ICC profile.",
+        "png_note": "Output is a lossless <b>CMYK TIFF</b> (8 bits per channel, Deflate compression) converted with the "
+                    "<b>WAN-IFRA newsprint ICC profile (ISO 12647-3), TIC {tic}%</b>, which is embedded in the file. "
+                    "Pure black uses the K ink only. Transparent areas are flattened on white and the PNG's DPI is kept (300 if it has none).",
         "black": "Pure black threshold",
-        "black_help": "Pixels this dark (or darker) become pure black: K 100%, with no C, M or Y. Use 0% to disable.",
+        "black_help": "Pixels this dark (or darker) become pure black: K 100%, with no C, M or Y. With 0%, only exact black (RGB 0,0,0) becomes pure black.",
         "only_n": "Only **{left}** of {n} files will be converted (free version limit).",
         "convert": "Convert",
         "no_files": "No {noun} files uploaded yet.",
@@ -212,7 +217,7 @@ def pro_dialog(limit: int) -> None:
 
 # ------------------------------------------------------------------ estado
 ss = st.session_state
-ss.setdefault("mode", "heic")
+ss.setdefault("mode", "png220")
 ss.setdefault("uploader_n", 0)
 ss.setdefault("result", None)
 ss.setdefault("show_pro", False)
@@ -247,12 +252,12 @@ with c3:
         ss.lang = pick
         st.rerun()
 mode = cv.MODES[ss.mode]
-c2.markdown(f'<div class="hero"><h1>{t(ss.mode + "_title")}</h1><p>{t(ss.mode + "_lead")}</p></div>',
+grp = "heic" if ss.mode == "heic" else "png"          # los tres modos PNG comparten título y textos
+c2.markdown(f'<div class="hero"><h1>{t(grp + "_title")}</h1><p>{t(grp + "_lead")}</p></div>',
             unsafe_allow_html=True)
 
 # ------------------------------------------------------------------ selector de conversión
-b1, b2 = st.columns(2)
-for col, m in ((b1, cv.MODES["heic"]), (b2, cv.MODES["png"])):
+for col, m in zip(st.columns(len(cv.MODES)), cv.MODES.values()):
     with col:
         st.button(f"**{t(m.key + '_label')}**  \n{t(m.key + '_sub')}", key=f"mode_{m.key}", icon=ICONS[m.key], use_container_width=True,
                   type="primary" if ss.mode == m.key else "secondary", on_click=set_mode, args=(m.key,),
@@ -270,7 +275,7 @@ with st.container(border=True):
     if ss.mode == "heic":
         quality = st.slider(t("quality"), 50, 100, 92, format="%d%%")
     else:
-        st.markdown(f'<div class="note">{t("png_note")}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="note">{t("png_note", tic=ss.mode[3:])}</div>', unsafe_allow_html=True)
         black_pct = st.slider(t("black"), 0, 15, 5, format="%d%%", help=t("black_help"))
 
 # ------------------------------------------------------------------ conversión
