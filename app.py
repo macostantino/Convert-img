@@ -19,7 +19,8 @@ import licensing as lic
 ROOT = Path(__file__).parent
 FAVICON = ROOT / "assets" / "favicon.png"
 LOGO = ROOT / "assets" / "logo.png"
-ICONS = {"heic": ":material/image:", "png": ":material/palette:", "jpg": ":material/photo_camera:"}
+ICONS = {"heic": ":material/image:", "png": ":material/palette:", "jpg": ":material/photo_camera:",
+         "wm": ":material/branding_watermark:"}
 TICS = ("220", "200", "180")        # perfiles WAN-IFRA; el primero (220) es el recomendado
 MAX_ROWS_WITH_BUTTON = 100          # filas con botón de descarga individual
 
@@ -99,6 +100,16 @@ TEXTS = {
         "heic_label": "HEIC a JPG", "heic_sub": "Fotos de iPhone a JPEG estándar",
         "png_label": "PNG a CMYK", "png_sub": "TIFF CMYK para papel de diario",
         "jpg_label": "JPG a CMYK", "jpg_sub": "TIFF CMYK para papel de diario",
+        "wm_label": "Marca de agua", "wm_sub": "Agrega tu logo a las fotos",
+        "wm_title": "<span>Marca de agua</span> en tus fotos",
+        "wm_lead": "Sube tus fotos (JPG, PNG o HEIC), pulsa <b>Convertir</b> y descarga cada una con la marca de agua aplicada. "
+                   "Las marcas predefinidas viven en la carpeta <code>watermarks/</code>.",
+        "wm_pick": "Marca de agua", "wm_upload": "…o sube otra marca de agua (PNG con transparencia)",
+        "wm_none": "No hay marcas en la carpeta watermarks/. Sube una abajo.",
+        "wm_pos": "Posición", "wm_size": "Tamaño (% del ancho)", "wm_op": "Opacidad",
+        "pos_br": "Abajo derecha", "pos_bl": "Abajo izquierda", "pos_tr": "Arriba derecha", "pos_tl": "Arriba izquierda",
+        "pos_center": "Centro",
+        "wm_note": "Las fotos PNG salen en PNG y las JPG/HEIC en JPG. Se respeta la orientación de cada foto.",
         "profile": "Perfil de conversión", "tic220": "WAN-IFRA TIC 220 (recomendado)", "tic200": "WAN-IFRA TIC 200",
         "tic180": "WAN-IFRA TIC 180",
         "heic_title": "<span>HEIC a JPG</span> Convertidor", "png_title": "<span>PNG a CMYK</span> Convertidor",
@@ -134,6 +145,16 @@ TEXTS = {
         "heic_label": "HEIC to JPG", "heic_sub": "iPhone photos to standard JPEG",
         "png_label": "PNG to CMYK", "png_sub": "CMYK TIFF for newsprint",
         "jpg_label": "JPG to CMYK", "jpg_sub": "CMYK TIFF for newsprint",
+        "wm_label": "Watermark", "wm_sub": "Add your logo to photos",
+        "wm_title": "<span>Watermark</span> your photos",
+        "wm_lead": "Upload your photos (JPG, PNG or HEIC), press <b>Convert</b> and download each one with the watermark applied. "
+                   "Preset watermarks live in the <code>watermarks/</code> folder.",
+        "wm_pick": "Watermark", "wm_upload": "…or upload another watermark (PNG with transparency)",
+        "wm_none": "No watermarks in the watermarks/ folder. Upload one below.",
+        "wm_pos": "Position", "wm_size": "Size (% of width)", "wm_op": "Opacity",
+        "pos_br": "Bottom right", "pos_bl": "Bottom left", "pos_tr": "Top right", "pos_tl": "Top left",
+        "pos_center": "Center",
+        "wm_note": "PNG photos are saved as PNG and JPG/HEIC as JPG. Each photo's orientation is respected.",
         "profile": "Conversion profile", "tic220": "WAN-IFRA TIC 220 (recommended)", "tic200": "WAN-IFRA TIC 200",
         "tic180": "WAN-IFRA TIC 180",
         "heic_title": "<span>HEIC to JPG</span> Converter", "png_title": "<span>PNG to CMYK</span> Converter",
@@ -258,13 +279,13 @@ with c3:
     if pick and pick != ss.lang:        # al des-seleccionar se mantiene el idioma actual
         ss.lang = pick
         st.rerun()
-cmode = "heic" if ss.mode == "heic" else f"{ss.mode}{ss.tic}"   # modo real: PNG/JPG dependen del perfil
+cmode = ss.mode if ss.mode in ("heic", "wm") else f"{ss.mode}{ss.tic}"   # modo real: PNG/JPG dependen del perfil
 mode = cv.MODES[cmode]
 c2.markdown(f'<div class="hero"><h1>{t(ss.mode + "_title")}</h1><p>{t(ss.mode + "_lead")}</p></div>',
             unsafe_allow_html=True)
 
 # ------------------------------------------------------------------ selector de conversión
-for col, key in zip(st.columns(3), ("heic", "png", "jpg")):
+for col, key in zip(st.columns(4), ("heic", "png", "jpg", "wm")):
     with col:
         st.button(f"**{t(key + '_label')}**  \n{t(key + '_sub')}", key=f"mode_{key}", icon=ICONS[key], use_container_width=True,
                   type="primary" if ss.mode == key else "secondary", on_click=set_mode, args=(key,),
@@ -278,8 +299,24 @@ with st.container(border=True):
         type=cv.accepted_types(cmode), accept_multiple_files=True,
         key=f"up_{ss.mode}_{ss.uploader_n}", label_visibility="collapsed",
     )
-    quality, black_pct = 92, 0
-    if ss.mode == "heic":
+    quality, black_pct, wm_opts = 92, 0, {}
+    if ss.mode == "wm":
+        presets = cv.list_watermarks()
+        if presets:
+            wm_choice = st.selectbox(t("wm_pick"), presets)
+        else:
+            wm_choice = None
+            st.caption(t("wm_none"))
+        wm_up = st.file_uploader(t("wm_upload"), type=["png", "jpg", "jpeg", "webp"], key=f"wmup_{ss.uploader_n}")
+        wm_src = wm_up.getvalue() if wm_up else wm_choice
+        w1, w2, w3 = st.columns(3)
+        pos = w1.selectbox(t("wm_pos"), cv.WM_POSITIONS, format_func=lambda v: t("pos_" + v))
+        scale = w2.slider(t("wm_size"), 5, 100, 25, format="%d%%")
+        opac = w3.slider(t("wm_op"), 10, 100, 70, format="%d%%")
+        quality = st.slider(t("quality"), 50, 100, 92, format="%d%%")
+        st.markdown(f'<div class="note">{t("wm_note")}</div>', unsafe_allow_html=True)
+        wm_opts = {"wm": wm_src, "position": pos, "scale_pct": scale, "opacity_pct": opac}
+    elif ss.mode == "heic":
         quality = st.slider(t("quality"), 50, 100, 92, format="%d%%")
     else:
         st.radio(t("profile"), TICS, key="tic", horizontal=True, format_func=lambda v: t("tic" + v))
@@ -296,7 +333,8 @@ with st.container(border=True):
         left = n
     if n and 0 < left < n:
         st.info(t("only_n", left=left, n=n))
-    go = st.button(t("convert"), key="go", disabled=(n == 0 or left <= 0), type="primary")
+    go = st.button(t("convert"), key="go", disabled=(n == 0 or left <= 0 or (ss.mode == "wm" and not wm_opts["wm"])),
+                   type="primary")
     if n == 0:
         st.caption(t("no_files", noun=mode.noun))
     elif left <= 0:
@@ -320,7 +358,7 @@ with st.container(border=True):
             t1 = time.time()
             try:
                 data = f.getvalue()
-                out = cv.convert(cmode, data, quality, black_pct)
+                out = cv.convert(cmode, data, quality, black_pct, **wm_opts)
                 lic.consume(store, usage["limit"])
                 items.append({"ok": True, "src": f.name, "out_name": cv.output_name(f.name, cmode, taken),
                               "bytes": out, "in_size": len(data), "ms": (time.time() - t1) * 1000})
@@ -368,7 +406,8 @@ if res and res["grp"] == ss.mode:
                                f'{fmt_size(len(it["bytes"]))} · {it["ms"] / 1000:.1f} s</span></div>', unsafe_allow_html=True)
                     if i < MAX_ROWS_WITH_BUTTON:
                         b.download_button(t("dl"), data=it["bytes"], file_name=it["out_name"],
-                                          mime=cv.MODES[res["mode"]].mime, key=f"dl_{i}", on_click="ignore")
+                                          mime="image/png" if it["out_name"].lower().endswith(".png") else cv.MODES[res["mode"]].mime,
+                                          key=f"dl_{i}", on_click="ignore")
                 else:
                     a.markdown(f'<div class="row-res"><span class="st-ic er">!</span><span class="n">{it["src"]}</span>'
                                f'<span class="m">{it["error"]}</span></div>', unsafe_allow_html=True)

@@ -44,6 +44,8 @@ for _fmt, _exts in (("png", ("png",)), ("jpg", ("jpg", "jpeg"))):
         MODES[f"{_fmt}{_tic}"] = Mode(f"{_fmt}{_tic}", f"{_fmt.upper()} to CMYK · TIC {_tic}", "WAN-IFRA newsprint",
                                       _fmt.upper(), _exts, ".tif", "CMYK TIFF", "image/tiff", "_CMYK",
                                       f"WANIFRA_NP26_TIC{_tic}.icc")
+MODES["wm"] = Mode("wm", "Watermark", "Add your watermark", "image", ("png", "jpg", "jpeg", "heic", "heif"),
+                   ".jpg", "JPG / PNG", "image/jpeg", "_WM")
 
 
 # ---------------------------------------------------------------- HEIC -> JPG
@@ -73,6 +75,8 @@ def _to_8bit_rgba(im: Image.Image) -> Image.Image:
 
 
 PROFILES_DIR = Path(__file__).parent / "profiles"
+WATERMARKS_DIR = Path(__file__).parent / "watermarks"
+WM_POSITIONS = ("br", "bl", "tr", "tl", "center")
 
 
 @lru_cache(maxsize=8)
@@ -139,8 +143,57 @@ def png_to_cmyk_tiff(data: bytes, chunk_rows: int = 512, black_pct: float = 0, p
     return buf.getvalue()
 
 
+# ---------------------------------------------------------------- Marca de agua
+def list_watermarks() -> list[str]:
+    """Marcas de agua predefinidas: archivos PNG/JPG/WEBP de la carpeta watermarks/ (orden alfabético)."""
+    if not WATERMARKS_DIR.is_dir():
+        return []
+    return sorted(f.name for f in WATERMARKS_DIR.iterdir()
+                  if f.is_file() and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"))
+
+
+def add_watermark(data: bytes, wm: bytes | str, position: str = "br", scale_pct: float = 25,
+                  opacity_pct: float = 70, quality: int = 92) -> bytes:
+    """Superpone la marca de agua (bytes, o nombre de archivo en watermarks/) sobre la imagen.
+       scale_pct = ancho de la marca como % del ancho de la foto; opacity_pct = 0-100.
+       Salida: PNG si la entrada es PNG; JPG en los demás casos (HEIC incluido)."""
+    if isinstance(wm, str):
+        wm = (WATERMARKS_DIR / Path(wm).name).read_bytes()
+    wm_im = Image.open(io.BytesIO(wm))
+    wm_im.load()
+    wm_im = wm_im.convert("RGBA")
+    src = Image.open(io.BytesIO(data))
+    src.load()
+    is_png = src.format == "PNG"
+    icc = src.info.get("icc_profile")
+    src = ImageOps.exif_transpose(src)
+    base = src.convert("RGBA")
+    w, h = base.size
+    ww = max(1, round(w * max(1.0, min(100.0, scale_pct)) / 100))
+    wh = max(1, round(wm_im.height * ww / wm_im.width))
+    wm_im = wm_im.resize((ww, wh), Image.LANCZOS)
+    alpha = wm_im.getchannel("A").point(lambda v: round(v * max(0.0, min(100.0, opacity_pct)) / 100))
+    wm_im.putalpha(alpha)
+    m = round(w * 0.03)
+    x = {"bl": m, "tl": m, "br": w - ww - m, "tr": w - ww - m}.get(position, (w - ww) // 2)
+    y = {"tl": m, "tr": m, "bl": h - wh - m, "br": h - wh - m}.get(position, (h - wh) // 2)
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    layer.paste(wm_im, (x, y))
+    out_im = Image.alpha_composite(base, layer)
+    out = io.BytesIO()
+    kw = {"icc_profile": icc} if icc else {}
+    if is_png:
+        out_im.save(out, "PNG", **kw)
+    else:
+        out_im.convert("RGB").save(out, "JPEG", quality=max(30, min(100, int(quality))), optimize=True,
+                                   subsampling=0 if quality >= 90 else 2, **kw)
+    return out.getvalue()
+
+
 # ---------------------------------------------------------------- API común
-def convert(mode: str, data: bytes, quality: int = 92, black_pct: float = 0) -> bytes:
+def convert(mode: str, data: bytes, quality: int = 92, black_pct: float = 0, **wm_opts) -> bytes:
+    if mode == "wm":
+        return add_watermark(data, quality=quality, **wm_opts)
     if mode == "heic":
         return heic_to_jpg(data, quality)
     if mode in MODES and MODES[mode].profile:
@@ -156,6 +209,8 @@ def output_name(filename: str, mode: str, taken: set[str] | None = None) -> str:
     """Nombre de salida con la extensión del modo; evita choques (a.jpg, a (2).jpg, ...)."""
     stem = PurePath(filename).stem or "image"
     ext = MODES[mode].out_ext
+    if mode == "wm" and PurePath(filename).suffix.lower() == ".png":
+        ext = ".png"
     stem += MODES[mode].out_suffix
     name, n = stem + ext, 1
     if taken is not None:

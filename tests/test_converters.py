@@ -197,3 +197,32 @@ def test_file_counter_survives_tampering_of_one_copy(tmp_path):
     assert s.read() == 250
     pa.unlink(); pb.write_text("{}")                      # sin copias válidas -> 0 (limitación conocida)
     assert s.read() == 0
+
+
+# ------------------------------------------------------------- marca de agua
+def _wm_png():
+    return png_bytes(np.full((20, 40, 4), (255, 0, 0, 255), dtype=np.uint8), "RGBA")
+
+
+def test_watermark_png_keeps_format_and_marks_corner():
+    base = png_bytes(np.zeros((200, 400, 3), dtype=np.uint8))
+    out = cv.convert("wm", base, wm=_wm_png(), position="br", scale_pct=25, opacity_pct=100)
+    im = Image.open(io.BytesIO(out))
+    assert im.format == "PNG" and im.size == (400, 200)
+    a = np.asarray(im.convert("RGB"))
+    assert a[170, 350].tolist() == [255, 0, 0] and a[5, 5].tolist() == [0, 0, 0]
+
+
+def test_watermark_jpg_output_and_name():
+    b = io.BytesIO()
+    Image.new("RGB", (100, 100), "white").save(b, "JPEG")
+    out = cv.convert("wm", b.getvalue(), wm=_wm_png(), position="center", opacity_pct=50)
+    assert Image.open(io.BytesIO(out)).format == "JPEG"
+    assert cv.output_name("a.PNG", "wm") == "a_WM.png" and cv.output_name("a.heic", "wm") == "a_WM.jpg"
+
+
+def test_watermark_presets_folder():
+    names = cv.list_watermarks()
+    assert names
+    out = cv.convert("wm", png_bytes(np.zeros((100, 200, 3), dtype=np.uint8)), wm=names[0])
+    assert Image.open(io.BytesIO(out)).size == (200, 100)
