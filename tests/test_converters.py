@@ -226,3 +226,15 @@ def test_watermark_presets_folder():
     assert names
     out = cv.convert("wm", png_bytes(np.zeros((100, 200, 3), dtype=np.uint8)), wm=names[0])
     assert Image.open(io.BytesIO(out)).size == (200, 100)
+
+
+def test_watermark_writes_exif_credit():
+    for fmt, raw in (("PNG", png_bytes(np.zeros((60, 80, 3), dtype=np.uint8))),):
+        out = cv.convert("wm", raw, wm=_wm_png(), author="Ana", copyright="© 2026 nosotros")
+        ex = Image.open(io.BytesIO(out)).getexif()
+        assert ex[0x013B] == "Ana" and ex[0x8298] == "(c) 2026 nosotros"
+    b = io.BytesIO()
+    Image.new("RGB", (80, 60), "white").save(b, "JPEG")
+    out = cv.convert("wm", b.getvalue(), wm=_wm_png(), author="Ana")
+    ex = Image.open(io.BytesIO(out)).getexif()
+    assert ex[0x013B] == "Ana" and 0x8298 not in ex

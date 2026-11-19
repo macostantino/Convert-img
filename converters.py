@@ -152,11 +152,19 @@ def list_watermarks() -> list[str]:
                   if f.is_file() and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"))
 
 
+def _ascii(text: str) -> str:
+    """El EXIF guarda texto ASCII: © -> (c) y se quitan los acentos (José -> Jose) para que ningún lector lo vea roto."""
+    import unicodedata
+    text = text.strip().replace("©", "(c)")
+    return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+
+
 def add_watermark(data: bytes, wm: bytes | str, position: str = "br", scale_pct: float = 25,
-                  opacity_pct: float = 70, quality: int = 92) -> bytes:
+                  opacity_pct: float = 70, quality: int = 92, author: str = "", copyright: str = "") -> bytes:
     """Superpone la marca de agua (bytes, o nombre de archivo en watermarks/) sobre la imagen.
        scale_pct = ancho de la marca como % del ancho de la foto; opacity_pct = 0-100.
-       Salida: PNG si la entrada es PNG; JPG en los demás casos (HEIC incluido)."""
+       author / copyright: si se indican, se escriben en el EXIF (Artist 0x013B, Copyright 0x8298); el resto del EXIF
+       original se conserva. Salida: PNG si la entrada es PNG; JPG en los demás casos (HEIC incluido)."""
     if isinstance(wm, str):
         wm = (WATERMARKS_DIR / Path(wm).name).read_bytes()
     wm_im = Image.open(io.BytesIO(wm))
@@ -166,6 +174,13 @@ def add_watermark(data: bytes, wm: bytes | str, position: str = "br", scale_pct:
     src.load()
     is_png = src.format == "PNG"
     icc = src.info.get("icc_profile")
+    exif = src.getexif()
+    if exif.get(0x0112, 1) != 1:                        # la foto se rota abajo: evitar rotar dos veces
+        exif[0x0112] = 1
+    if _ascii(author):
+        exif[0x013B] = _ascii(author)
+    if _ascii(copyright):
+        exif[0x8298] = _ascii(copyright)
     src = ImageOps.exif_transpose(src)
     base = src.convert("RGBA")
     w, h = base.size
@@ -182,6 +197,8 @@ def add_watermark(data: bytes, wm: bytes | str, position: str = "br", scale_pct:
     out_im = Image.alpha_composite(base, layer)
     out = io.BytesIO()
     kw = {"icc_profile": icc} if icc else {}
+    if len(exif):
+        kw["exif"] = exif.tobytes()
     if is_png:
         out_im.save(out, "PNG", **kw)
     else:

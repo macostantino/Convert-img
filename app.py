@@ -109,6 +109,8 @@ TEXTS = {
         "wm_pos": "Posición", "wm_size": "Tamaño (% del ancho)", "wm_op": "Opacidad",
         "pos_br": "Abajo derecha", "pos_bl": "Abajo izquierda", "pos_tr": "Arriba derecha", "pos_tl": "Arriba izquierda",
         "pos_center": "Centro",
+        "wm_author": "Autor (metadatos)", "wm_copy": "Copyright (metadatos)",
+        "wm_meta_help": "Se guardan en el EXIF de cada foto (Artist y Copyright), como texto simple: © pasa a (c) y se quitan los acentos. Es un respaldo invisible: se puede borrar, a diferencia de la marca visible.",
         "wm_note": "Las fotos PNG salen en PNG y las JPG/HEIC en JPG. Se respeta la orientación de cada foto.",
         "profile": "Perfil de conversión", "tic220": "WAN-IFRA TIC 220 (recomendado)", "tic200": "WAN-IFRA TIC 200",
         "tic180": "WAN-IFRA TIC 180",
@@ -154,6 +156,8 @@ TEXTS = {
         "wm_pos": "Position", "wm_size": "Size (% of width)", "wm_op": "Opacity",
         "pos_br": "Bottom right", "pos_bl": "Bottom left", "pos_tr": "Top right", "pos_tl": "Top left",
         "pos_center": "Center",
+        "wm_author": "Author (metadata)", "wm_copy": "Copyright (metadata)",
+        "wm_meta_help": "Saved in each photo's EXIF (Artist and Copyright) as plain text: © becomes (c), accents are dropped. An invisible backup: unlike the visible watermark, it can be stripped.",
         "wm_note": "PNG photos are saved as PNG and JPG/HEIC as JPG. Each photo's orientation is respected.",
         "profile": "Conversion profile", "tic220": "WAN-IFRA TIC 220 (recommended)", "tic200": "WAN-IFRA TIC 200",
         "tic180": "WAN-IFRA TIC 180",
@@ -314,8 +318,12 @@ with st.container(border=True):
         scale = w2.slider(t("wm_size"), 5, 100, 25, format="%d%%")
         opac = w3.slider(t("wm_op"), 10, 100, 70, format="%d%%")
         quality = st.slider(t("quality"), 50, 100, 92, format="%d%%")
+        m1, m2 = st.columns(2)
+        author = m1.text_input(t("wm_author"), help=t("wm_meta_help"))
+        copy = m2.text_input(t("wm_copy"), help=t("wm_meta_help"), placeholder="© 2026 nosotros")
         st.markdown(f'<div class="note">{t("wm_note")}</div>', unsafe_allow_html=True)
-        wm_opts = {"wm": wm_src, "position": pos, "scale_pct": scale, "opacity_pct": opac}
+        wm_opts = {"wm": wm_src, "position": pos, "scale_pct": scale, "opacity_pct": opac,
+                   "author": author, "copyright": copy}
     elif ss.mode == "heic":
         quality = st.slider(t("quality"), 50, 100, 92, format="%d%%")
     else:
