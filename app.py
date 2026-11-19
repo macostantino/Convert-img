@@ -311,10 +311,10 @@ with st.container(border=True):
         quality = st.slider(t("quality"), 50, 100, 100, format="%d%%")
         m1, m2 = st.columns(2)
         ss.setdefault("wm_author_last", None)
-        if ss.wm_author_last != wm_name:    # al cambiar de marca, el autor se rellena con su nombre
-            ss.wm_author_last, ss.wm_author = wm_name, wm_name
+        if ss.wm_author_last != wm_name:    # al cambiar de marca, autor y copyright se rellenan con su nombre
+            ss.wm_author_last, ss.wm_author, ss.wm_copy = wm_name, wm_name, f"© {wm_name}" if wm_name else ""
         author = m1.text_input(t("wm_author"), help=t("wm_meta_help"), key="wm_author")
-        copy = m2.text_input(t("wm_copy"), help=t("wm_meta_help"), placeholder="© 2026 nosotros")
+        copy = m2.text_input(t("wm_copy"), help=t("wm_meta_help"), key="wm_copy")
         st.markdown(f'<div class="note">{t("wm_note")}</div>', unsafe_allow_html=True)
         wm_opts = {"wm": wm_src, "position": pos, "scale_pct": scale, "opacity_pct": opac,
                    "author": author, "copyright": copy}
