@@ -75,7 +75,6 @@ def _to_8bit_rgba(im: Image.Image) -> Image.Image:
 
 
 PROFILES_DIR = Path(__file__).parent / "profiles"
-WATERMARKS_DIR = Path(__file__).parent / "watermarks"
 WM_POSITIONS = ("br", "bl", "tr", "tl", "center")
 
 
@@ -144,14 +143,6 @@ def png_to_cmyk_tiff(data: bytes, chunk_rows: int = 512, black_pct: float = 0, p
 
 
 # ---------------------------------------------------------------- Marca de agua
-def list_watermarks() -> list[str]:
-    """Marcas de agua predefinidas: archivos PNG/JPG/WEBP de la carpeta watermarks/ (orden alfabético)."""
-    if not WATERMARKS_DIR.is_dir():
-        return []
-    return sorted(f.name for f in WATERMARKS_DIR.iterdir()
-                  if f.is_file() and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"))
-
-
 def _ascii(text: str) -> str:
     """El EXIF guarda texto ASCII: © -> (c) y se quitan los acentos (José -> Jose) para que ningún lector lo vea roto."""
     import unicodedata
@@ -159,14 +150,12 @@ def _ascii(text: str) -> str:
     return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
 
 
-def add_watermark(data: bytes, wm: bytes | str, position: str = "br", scale_pct: float = 10,
+def add_watermark(data: bytes, wm: bytes, position: str = "br", scale_pct: float = 10,
                   opacity_pct: float = 20, quality: int = 100, author: str = "", copyright: str = "") -> bytes:
-    """Superpone la marca de agua (bytes, o nombre de archivo en watermarks/) sobre la imagen.
+    """Superpone la marca de agua (bytes de un PNG/JPG/WEBP) sobre la imagen.
        scale_pct = ancho de la marca como % del ancho de la foto; opacity_pct = 0-100.
        author / copyright: si se indican, se escriben en el EXIF (Artist 0x013B, Copyright 0x8298); el resto del EXIF
        original se conserva. Salida: PNG si la entrada es PNG; JPG en los demás casos (HEIC incluido)."""
-    if isinstance(wm, str):
-        wm = (WATERMARKS_DIR / Path(wm).name).read_bytes()
     wm_im = Image.open(io.BytesIO(wm))
     wm_im.load()
     wm_im = wm_im.convert("RGBA")

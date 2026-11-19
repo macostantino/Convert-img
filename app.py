@@ -102,10 +102,8 @@ TEXTS = {
         "jpg_label": "JPG a CMYK", "jpg_sub": "TIFF CMYK para papel de diario",
         "wm_label": "Marca de agua", "wm_sub": "Agrega tu logo a las fotos",
         "wm_title": "<span>Marca de agua</span> en tus fotos",
-        "wm_lead": "Sube tus fotos (JPG, PNG o HEIC), pulsa <b>Convertir</b> y descarga cada una con la marca de agua aplicada. "
-                   "Las marcas predefinidas viven en la carpeta <code>watermarks/</code>.",
-        "wm_pick": "Marca de agua", "wm_upload": "…o sube otra marca de agua (PNG con transparencia)",
-        "wm_none": "No hay marcas en la carpeta watermarks/. Sube una abajo.",
+        "wm_lead": "Sube tus fotos (JPG, PNG o HEIC), pulsa <b>Convertir</b> y descarga cada una con la marca de agua aplicada.",
+        "wm_upload": "Sube la marca de agua (PNG con transparencia)",
         "wm_pos": "Posición", "wm_size": "Tamaño (% del ancho)", "wm_op": "Opacidad",
         "pos_br": "Abajo derecha", "pos_bl": "Abajo izquierda", "pos_tr": "Arriba derecha", "pos_tl": "Arriba izquierda",
         "pos_center": "Centro",
@@ -149,10 +147,8 @@ TEXTS = {
         "jpg_label": "JPG to CMYK", "jpg_sub": "CMYK TIFF for newsprint",
         "wm_label": "Watermark", "wm_sub": "Add your logo to photos",
         "wm_title": "<span>Watermark</span> your photos",
-        "wm_lead": "Upload your photos (JPG, PNG or HEIC), press <b>Convert</b> and download each one with the watermark applied. "
-                   "Preset watermarks live in the <code>watermarks/</code> folder.",
-        "wm_pick": "Watermark", "wm_upload": "…or upload another watermark (PNG with transparency)",
-        "wm_none": "No watermarks in the watermarks/ folder. Upload one below.",
+        "wm_lead": "Upload your photos (JPG, PNG or HEIC), press <b>Convert</b> and download each one with the watermark applied.",
+        "wm_upload": "Sube la marca de agua (PNG con transparencia)",
         "wm_pos": "Position", "wm_size": "Size (% of width)", "wm_op": "Opacity",
         "pos_br": "Bottom right", "pos_bl": "Bottom left", "pos_tr": "Top right", "pos_tl": "Top left",
         "pos_center": "Center",
@@ -305,15 +301,9 @@ with st.container(border=True):
     )
     quality, black_pct, wm_opts = 92, 0, {}
     if ss.mode == "wm":
-        presets = cv.list_watermarks()
-        if presets:
-            wm_choice = st.selectbox(t("wm_pick"), presets)
-        else:
-            wm_choice = None
-            st.caption(t("wm_none"))
         wm_up = st.file_uploader(t("wm_upload"), type=["png", "jpg", "jpeg", "webp"], key=f"wmup_{ss.uploader_n}")
-        wm_src = wm_up.getvalue() if wm_up else wm_choice
-        wm_name = Path(wm_up.name if wm_up else wm_choice or "").stem   # el nombre de la marca va como copyright
+        wm_src = wm_up.getvalue() if wm_up else None
+        wm_name = Path(wm_up.name if wm_up else "").stem   # el nombre de la marca va como copyright
         w1, w2, w3 = st.columns(3)
         pos = w1.selectbox(t("wm_pos"), cv.WM_POSITIONS, format_func=lambda v: t("pos_" + v))
         scale = w2.slider(t("wm_size"), 5, 100, 10, format="%d%%")

@@ -221,13 +221,6 @@ def test_watermark_jpg_output_and_name():
     assert cv.output_name("a.PNG", "wm") == "a_WM.png" and cv.output_name("a.heic", "wm") == "a_WM.jpg"
 
 
-def test_watermark_presets_folder():
-    names = cv.list_watermarks()
-    assert names
-    out = cv.convert("wm", png_bytes(np.zeros((100, 200, 3), dtype=np.uint8)), wm=names[0])
-    assert Image.open(io.BytesIO(out)).size == (200, 100)
-
-
 def test_watermark_writes_exif_credit():
     for fmt, raw in (("PNG", png_bytes(np.zeros((60, 80, 3), dtype=np.uint8))),):
         out = cv.convert("wm", raw, wm=_wm_png(), author="Ana", copyright="© 2026 nosotros")
