@@ -1,4 +1,4 @@
-# convert-img · by nosotros
+# convert-img · by margarita.dev
 
 Convertidor de imágenes en **Streamlit** con dos conversiones, elegibles con un botón:
 

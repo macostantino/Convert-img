@@ -1,4 +1,4 @@
-# convert-img (by nosotros)
+# convert-img (by margarita.dev)
 
 App Streamlit para convertir imágenes: HEIC→JPG y PNG/JPG→CMYK (TIFF) para papel de diario, con tres perfiles ICC WAN-IFRA (TIC 220 por defecto, 200 y 180) en `profiles/`. UI bilingüe: español (por defecto) e inglés, con selector de bandera; los textos viven en `TEXTS` de `app.py` (agregar siempre ambos idiomas).
 
