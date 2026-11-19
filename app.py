@@ -312,9 +312,12 @@ with st.container(border=True):
         m1, m2 = st.columns(2)
         ss.setdefault("wm_author_last", None)
         if ss.wm_author_last != wm_name:    # al cambiar de marca, autor y copyright se rellenan con su nombre
-            ss.wm_author_last, ss.wm_author, ss.wm_copy = wm_name, wm_name, f"© {wm_name}" if wm_name else ""
+            ss.wm_author_last, ss.wm_author, ss.wm_copy = wm_name, wm_name, wm_name
         author = m1.text_input(t("wm_author"), help=t("wm_meta_help"), key="wm_author")
-        copy = m2.text_input(t("wm_copy"), help=t("wm_meta_help"), key="wm_copy")
+        sym, txt = m2.columns([1, 5], gap="small", vertical_alignment="bottom")
+        sym.text_input("©", "©", disabled=True, key="wm_sym")         # el símbolo © es fijo; solo se edita el texto
+        copy = txt.text_input(t("wm_copy"), help=t("wm_meta_help"), key="wm_copy")
+        copy = f"© {copy.strip()}" if copy.strip() else ""
         st.markdown(f'<div class="note">{t("wm_note")}</div>', unsafe_allow_html=True)
         wm_opts = {"wm": wm_src, "position": pos, "scale_pct": scale, "opacity_pct": opac,
                    "author": author, "copyright": copy}
