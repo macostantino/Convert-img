@@ -315,9 +315,9 @@ with st.container(border=True):
         wm_src = wm_up.getvalue() if wm_up else wm_choice
         w1, w2, w3 = st.columns(3)
         pos = w1.selectbox(t("wm_pos"), cv.WM_POSITIONS, format_func=lambda v: t("pos_" + v))
-        scale = w2.slider(t("wm_size"), 5, 100, 25, format="%d%%")
-        opac = w3.slider(t("wm_op"), 10, 100, 70, format="%d%%")
-        quality = st.slider(t("quality"), 50, 100, 92, format="%d%%")
+        scale = w2.slider(t("wm_size"), 5, 100, 10, format="%d%%")
+        opac = w3.slider(t("wm_op"), 10, 100, 20, format="%d%%")
+        quality = st.slider(t("quality"), 50, 100, 100, format="%d%%")
         m1, m2 = st.columns(2)
         author = m1.text_input(t("wm_author"), help=t("wm_meta_help"))
         copy = m2.text_input(t("wm_copy"), help=t("wm_meta_help"), placeholder="© 2026 nosotros")

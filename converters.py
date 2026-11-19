@@ -159,8 +159,8 @@ def _ascii(text: str) -> str:
     return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
 
 
-def add_watermark(data: bytes, wm: bytes | str, position: str = "br", scale_pct: float = 25,
-                  opacity_pct: float = 70, quality: int = 92, author: str = "", copyright: str = "") -> bytes:
+def add_watermark(data: bytes, wm: bytes | str, position: str = "br", scale_pct: float = 10,
+                  opacity_pct: float = 20, quality: int = 100, author: str = "", copyright: str = "") -> bytes:
     """Superpone la marca de agua (bytes, o nombre de archivo en watermarks/) sobre la imagen.
        scale_pct = ancho de la marca como % del ancho de la foto; opacity_pct = 0-100.
        author / copyright: si se indican, se escriben en el EXIF (Artist 0x013B, Copyright 0x8298); el resto del EXIF
