@@ -303,18 +303,18 @@ with st.container(border=True):
     if ss.mode == "wm":
         wm_up = st.file_uploader(t("wm_upload"), type=["png", "jpg", "jpeg", "webp"], key=f"wmup_{ss.uploader_n}")
         wm_src = wm_up.getvalue() if wm_up else None
-        wm_name = Path(wm_up.name if wm_up else "").stem   # el nombre de la marca va como copyright
+        wm_name = Path(wm_up.name if wm_up else "").stem   # el nombre de la marca va como autor
         w1, w2, w3 = st.columns(3)
         pos = w1.selectbox(t("wm_pos"), cv.WM_POSITIONS, format_func=lambda v: t("pos_" + v))
         scale = w2.slider(t("wm_size"), 5, 100, 10, format="%d%%")
         opac = w3.slider(t("wm_op"), 10, 100, 20, format="%d%%")
         quality = st.slider(t("quality"), 50, 100, 100, format="%d%%")
         m1, m2 = st.columns(2)
-        author = m1.text_input(t("wm_author"), help=t("wm_meta_help"))
-        ss.setdefault("wm_copy_last", None)
-        if ss.wm_copy_last != wm_name:      # al cambiar de marca, el copyright se rellena con su nombre
-            ss.wm_copy_last, ss.wm_copy = wm_name, wm_name
-        copy = m2.text_input(t("wm_copy"), help=t("wm_meta_help"), key="wm_copy")
+        ss.setdefault("wm_author_last", None)
+        if ss.wm_author_last != wm_name:    # al cambiar de marca, el autor se rellena con su nombre
+            ss.wm_author_last, ss.wm_author = wm_name, wm_name
+        author = m1.text_input(t("wm_author"), help=t("wm_meta_help"), key="wm_author")
+        copy = m2.text_input(t("wm_copy"), help=t("wm_meta_help"), placeholder="© 2026 nosotros")
         st.markdown(f'<div class="note">{t("wm_note")}</div>', unsafe_allow_html=True)
         wm_opts = {"wm": wm_src, "position": pos, "scale_pct": scale, "opacity_pct": opac,
                    "author": author, "copyright": copy}
