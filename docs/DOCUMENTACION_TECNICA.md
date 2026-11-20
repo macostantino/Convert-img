@@ -2,14 +2,14 @@
 
 ## 1. Resumen
 
-App **Streamlit** (Python) con tres conversiones de imágenes: HEIC→JPG y PNG/JPG→CMYK (TIFF con perfil ICC WAN-IFRA para papel de diario). La lógica de conversión está separada de la interfaz y se prueba con pytest. Interfaz bilingüe (español por defecto, inglés).
+App **Streamlit** (Python) con cuatro modos: HEIC→JPG, PNG/JPG→CMYK (TIFF con perfil ICC WAN-IFRA para papel de diario) y marca de agua sobre JPG/PNG/HEIC. La lógica de conversión está separada de la interfaz y se prueba con pytest. Interfaz bilingüe (español por defecto, inglés).
 
 | Componente | Detalle |
 |---|---|
 | Lenguaje | Python 3.12 (el CI usa 3.12) |
 | Interfaz | Streamlit `>=1.43,<2` |
 | Imágenes | Pillow `>=10.4` (incluye `ImageCms`/LittleCMS), pillow-heif `>=0.18`, numpy `>=1.26` |
-| Tests | pytest (22 tests) |
+| Tests | pytest (25 tests) |
 | CI | GitHub Actions: tests en cada push a `main` y en cada PR |
 
 ## 2. Estructura del repositorio
@@ -45,10 +45,11 @@ Todos son perfiles de salida CMYK, versión ICC 2.4. Los de WAN-IFRA siguen ISO 
 `Mode` es un `dataclass` inmutable con: `key`, `label`, `subtitle`, `noun`, `in_exts`, `out_ext`, `out_label`, `mime`, `out_suffix` y `profile`.
 
 - `heic`: entrada `heic/heif`, salida `.jpg`, sufijo `_JPG`.
+- `wm`: entrada `png/jpg/jpeg/heic/heif`, salida `.jpg` (o `.png` si la entrada es PNG; lo resuelve `output_name`), sufijo `_WM`, sin perfil.
 - `png220`, `png200`, `png180` y `jpg220`, `jpg200`, `jpg180`: se generan en un bucle. Entrada `png` o `jpg/jpeg`, salida `.tif`, sufijo `_CMYK`, `profile` = archivo `.icc` de `profiles/`.
 
-### 3.2 `convert(mode, data, quality=92, black_pct=0) -> bytes`
-Punto de entrada. Despacha a `heic_to_jpg` si el modo es `heic`, o a `png_to_cmyk_tiff` si el modo tiene perfil. Un modo desconocido lanza `ValueError`.
+### 3.2 `convert(mode, data, quality=92, black_pct=0, **wm_opts) -> bytes`
+Punto de entrada. Despacha a `add_watermark` si el modo es `wm` (pasándole `wm_opts`), a `heic_to_jpg` si es `heic`, o a `png_to_cmyk_tiff` si el modo tiene perfil. Un modo desconocido lanza `ValueError`.
 
 ### 3.3 `heic_to_jpg`
 1. Calidad acotada a 30–100.
@@ -74,18 +75,30 @@ Se usa para PNG y para JPG.
 - Intención: **colorimétrico relativo** con **compensación de punto negro** (`BLACKPOINTCOMPENSATION`).
 - La transformación y los bytes del perfil se cachean con `functools.lru_cache`, así no se vuelven a construir por cada archivo (los perfiles pesan de 0,8 a 2,5 MB).
 
-### 3.6 Otras funciones
+### 3.6 `add_watermark(data, wm, position="br", scale_pct=10, opacity_pct=20, quality=85, author="", copyright="") -> bytes`
+Superpone una marca de agua sobre la foto.
+
+1. `wm` son los **bytes** de la marca (PNG/JPG/WEBP); se pasa a RGBA. La marca no se guarda en el repositorio: la sube el usuario en cada sesión.
+2. Se lee el EXIF original y se fuerza `Orientation = 1` (la foto se rota con `ImageOps.exif_transpose`, así no se rota dos veces).
+3. La marca se escala a `scale_pct` % del ancho de la foto (5–100, proporcional) y su canal alfa se multiplica por `opacity_pct` (0–100). Margen del 3% del ancho; `position` ∈ `WM_POSITIONS` = `br`, `bl`, `tr`, `tl`, `center`.
+4. Se compone con `Image.alpha_composite` sobre la foto en RGBA.
+5. **Salida:** PNG si la entrada es PNG; JPG en los demás casos (HEIC incluido), con `quality` acotada a 30–100, `optimize=True` y submuestreo 4:4:4 si la calidad es ≥ 90. Se conserva el perfil ICC.
+6. **Metadatos:** si se pasan `author` y/o `copyright`, se escriben en el EXIF (`0x013B` Artist y `0x8298` Copyright) junto al resto del EXIF original. `_ascii()` convierte el texto a ASCII (`©` → `(c)`, sin acentos), porque el EXIF guarda texto ASCII.
+
+**Calidad y tamaño:** el JPG se vuelve a codificar, así que a 100% pesa 3–5 veces más que un original comprimido a ~80% (una foto de 650 KB llegó a 3,3 MB; a 85% pesa casi igual). Por eso el valor por defecto es 85.
+
+### 3.7 Otras funciones
 - `accepted_types(mode)`: lista de extensiones para el cargador de archivos.
-- `output_name(filename, mode, taken)`: nombre de salida con sufijo y extensión; evita choques con `name (2).ext`, comparando en minúsculas.
+- `output_name(filename, mode, taken)`: nombre de salida con sufijo y extensión (en el modo `wm`, `.png` si el original es PNG); evita choques con `name (2).ext`, comparando en minúsculas.
 
 ## 4. `app.py` (interfaz)
 
 ### 4.1 Flujo
-1. **Estado** (`st.session_state`): `mode` (`heic`/`png`/`jpg`), `tic` (`220`/`200`/`180`), `lang`, `uploader_n`, `result`, `show_pro`.
-2. El modo real de conversión se arma como `cmode = "heic"` o `f"{mode}{tic}"` (por ejemplo `png220`).
+1. **Estado** (`st.session_state`): `mode` (`heic`/`png`/`jpg`/`wm`), `tic` (`220`/`200`/`180`), `lang`, `uploader_n`, `result`, `show_pro`.
+2. El modo real de conversión se arma como `cmode = mode` si es `heic` o `wm`, o `f"{mode}{tic}"` (por ejemplo `png220`).
 3. **Selector de idioma** (`st.segmented_control`) arriba a la derecha; al cambiar se guarda en `ss.lang` y se hace `rerun`.
-4. **Tres botones de modo** (`mode_heic`, `mode_png`, `mode_jpg`). `set_mode` limpia el resultado y reinicia el cargador de archivos (cambiando su `key` con `uploader_n`).
-5. **Paso 1:** `st.file_uploader` con las extensiones de `cmode`. HEIC muestra el slider de calidad; PNG y JPG muestran el selector de perfil (`st.radio` horizontal), una nota y el slider de umbral (0–15, por defecto 5).
+4. **Cuatro botones de modo** (`mode_heic`, `mode_png`, `mode_jpg`, `mode_wm`). `set_mode` limpia el resultado y reinicia el cargador de archivos (cambiando su `key` con `uploader_n`).
+5. **Paso 1:** `st.file_uploader` con las extensiones de `cmode`. Marca de agua muestra un segundo cargador para la marca, posición, tamaño (por defecto 10%), opacidad (20%), calidad (85%) y los campos Autor y Copyright (se rellenan con el nombre del archivo de la marca; el © de Copyright es un campo fijo bloqueado; el botón Convertir queda desactivado sin marca). HEIC muestra el slider de calidad; PNG y JPG muestran el selector de perfil (`st.radio` horizontal), una nota y el slider de umbral (0–15, por defecto 5).
 6. **Paso 2:** botón Convertir, que recorre los archivos uno a uno, actualiza la barra de progreso con tiempo estimado y captura los errores por archivo sin detener el lote. Cada conversión exitosa llama a `lic.consume`.
 7. **Paso 3:** se arma un `.zip` en memoria y se muestran contadores, descarga general y una fila por archivo (botón individual solo en las primeras `MAX_ROWS_WITH_BUTTON = 100`).
 
@@ -96,7 +109,7 @@ Todos los textos visibles están en el diccionario `TEXTS` (`"es"` y `"en"`) y s
 CSS embebido en `app.py`. Los botones de modo se estilizan con el selector `[class*="st-key-mode_"]`, que alcanza a todos los botones cuya clave empieza con `mode_` (función de Streamlit ≥ 1.43).
 
 ### 4.4 Resultados
-`ss.result` guarda `grp` (el grupo: `heic`, `png` o `jpg`), `mode` (el modo real), la lista de archivos, el `.zip` y las estadísticas. El resultado se muestra mientras el grupo coincida con el modo elegido, y se puede cambiar de perfil sin perderlo.
+`ss.result` guarda `grp` (el grupo: `heic`, `png`, `jpg` o `wm`), `mode` (el modo real), la lista de archivos, el `.zip` y las estadísticas. El resultado se muestra mientras el grupo coincida con el modo elegido, y se puede cambiar de perfil sin perderlo.
 
 ## 5. `licensing.py`
 
@@ -121,10 +134,10 @@ Tema claro con los colores de la marca (`#1f9bb0`, `#0f2b46`, fondo `#f3f6f9`), 
 
 ```bash
 pip install pytest
-python -m pytest -q tests        # 22 tests
+python -m pytest -q tests        # 25 tests
 ```
 
-Cubren: colores primarios y conversión matemática, transparencia sobre blanco, DPI, PNG de paleta/gris/16 bits, procesamiento por bloques (mismo resultado con cualquier tamaño de bloque, con y sin perfil), umbral de negro puro, los tres perfiles ICC (negro en K puro, blanco sin tinta, perfil incrustado, tinta total dentro del límite), JPG (extensiones, negro con ruido de compresión, orientación EXIF), HEIC (calidad, EXIF, orientación), nombres de salida y colisiones, y el contador (memoria, archivo, manipulación de una copia).
+Cubren: colores primarios y conversión matemática, transparencia sobre blanco, DPI, PNG de paleta/gris/16 bits, procesamiento por bloques (mismo resultado con cualquier tamaño de bloque, con y sin perfil), umbral de negro puro, los tres perfiles ICC (negro en K puro, blanco sin tinta, perfil incrustado, tinta total dentro del límite), JPG (extensiones, negro con ruido de compresión, orientación EXIF), HEIC (calidad, EXIF, orientación), marca de agua (formato de salida PNG/JPG, posición, nombres `_WM`, crédito en el EXIF), nombres de salida y colisiones, y el contador (memoria, archivo, manipulación de una copia).
 
 El CI (`.github/workflows/ci.yml`) los corre en Python 3.12 en cada push a `main` y en cada pull request.
 

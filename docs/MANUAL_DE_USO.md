@@ -1,12 +1,13 @@
 # convert-img · Manual de uso
 
-Aplicación web para convertir imágenes. Hace tres tipos de conversión:
+Aplicación web para convertir imágenes. Hace cuatro tipos de trabajo:
 
 | Botón | Qué hace | Salida |
 |---|---|---|
 | **HEIC a JPG** | Pasa fotos de iPhone (HEIC/HEIF) a JPG estándar | `nombre_JPG.jpg` |
 | **PNG a CMYK** | Convierte PNG a CMYK para imprimir en papel de diario | `nombre_CMYK.tif` |
 | **JPG a CMYK** | Igual que PNG a CMYK, pero partiendo de JPG | `nombre_CMYK.tif` |
+| **Marca de agua** | Superpone tu logo sobre las fotos (JPG, PNG o HEIC) | `nombre_WM.jpg` o `nombre_WM.png` |
 
 Todo se procesa en la sesión de la app: los archivos no se guardan en ningún lado.
 
@@ -20,7 +21,7 @@ Arriba a la derecha hay un selector con dos opciones: **🇪🇸 Español** (por
 
 ## 2. Elegir la conversión
 
-Toca uno de los tres botones de arriba. El botón seleccionado queda resaltado. Al cambiar de conversión se limpian los archivos subidos y los resultados anteriores.
+Toca uno de los cuatro botones de arriba. El botón seleccionado queda resaltado. Al cambiar de conversión se limpian los archivos subidos y los resultados anteriores.
 
 ## 3. Paso 1 · Sube tus archivos
 
@@ -29,6 +30,7 @@ Toca uno de los tres botones de arriba. El botón seleccionado queda resaltado. 
   - HEIC a JPG: `.heic`, `.heif`
   - PNG a CMYK: `.png`
   - JPG a CMYK: `.jpg`, `.jpeg`
+  - Marca de agua: `.jpg`, `.jpeg`, `.png`, `.heic`, `.heif`
 - Tamaño máximo: **200 MB por archivo**.
 
 ### Opciones de HEIC a JPG
@@ -56,6 +58,19 @@ Al elegir estas conversiones aparecen dos opciones:
 
 Los colores que no son negro conservan su mezcla de tintas según el perfil elegido.
 
+### Opciones de Marca de agua
+1. **Sube la marca de agua** en el segundo cargador. Puede ser PNG, JPG o WEBP; lo ideal es un **PNG con fondo transparente**. La marca **no queda guardada**: hay que subirla cada vez que se abre la app. Sin marca, el botón Convertir queda desactivado.
+2. **Posición:** abajo a la derecha (por defecto), abajo a la izquierda, arriba a la derecha, arriba a la izquierda o centro.
+3. **Tamaño** (5% a 100% del ancho de la foto, por defecto **10%**).
+4. **Opacidad** (10% a 100%, por defecto **20%**). Con 100% la marca queda sólida; con valores bajos se ve la foto a través del logo.
+5. **Calidad del JPG** (50% a 100%, por defecto **85%**). Solo afecta a las salidas JPG. Con 100% los archivos pesan 3 a 5 veces más sin ganar calidad real, porque la foto original ya venía comprimida.
+6. **Autor** y **Copyright** (opcionales). Se escriben en los metadatos (EXIF) de cada foto, de forma invisible. Al subir la marca, **Autor** se rellena con el nombre del archivo de la marca (sin extensión) y **Copyright** con ese mismo nombre detrás de un **©** fijo; ambos se pueden editar. Si se dejan vacíos, no se escribe nada.
+
+Cómo sale el resultado:
+- Las fotos **PNG** salen en **PNG** y las **JPG/HEIC** en **JPG**. Se respeta la orientación de cada foto y se conserva el perfil de color.
+- Los metadatos se guardan como texto simple: el **©** queda como **(c)** y se quitan los acentos (José pasa a Jose), para que ningún programa lo muestre roto.
+- La marca de agua visible es parte de la imagen. Los metadatos son un respaldo invisible: se pueden borrar.
+
 ## 4. Paso 2 · Convierte
 
 1. Pulsa **Convertir**.
@@ -71,7 +86,7 @@ Los colores que no son negro conservan su mezcla de tintas según el perfil eleg
 - **Limpiar y empezar de nuevo** borra los resultados y vacía la zona de carga.
 
 ### Nombres de salida
-Se toma el nombre original y se agrega un sufijo: `foto.heic` → `foto_JPG.jpg`, `afiche.png` → `afiche_CMYK.tif`. Si dos archivos darían el mismo nombre, el segundo lleva un número: `foto_JPG (2).jpg`.
+Se toma el nombre original y se agrega un sufijo: `foto.heic` → `foto_JPG.jpg`, `afiche.png` → `afiche_CMYK.tif`, y con marca de agua `foto.jpg` → `foto_WM.jpg`, `afiche.png` → `afiche_WM.png`. Si dos archivos darían el mismo nombre, el segundo lleva un número: `foto_JPG (2).jpg`.
 
 ---
 
@@ -100,6 +115,15 @@ Es lo esperado en CMYK y en papel de diario. Para comparar con lo que va a salir
 
 **Un archivo da error.**
 Revisa que el archivo no esté dañado y que tenga el formato que corresponde a la conversión elegida. Los demás archivos del lote se convierten igual.
+
+**Las fotos con marca de agua pesan mucho más que el original.**
+Casi siempre es la calidad del JPG. Déjala en 85% (valor por defecto): con 100% el archivo se multiplica por 3 o más.
+
+**La marca de agua no se ve.**
+Sube la opacidad o el tamaño, y usa un PNG cuyos colores contrasten con la foto. Con 20% de opacidad una marca oscura sobre una foto oscura casi no se nota.
+
+**¿Se puede quitar la marca de agua?**
+No con un ajuste: queda dibujada en los píxeles. Con edición manual se puede disimular, sobre todo si es chica y está en una esquina. Es una señal de autoría, no una protección total.
 
 **¿Hay límite de conversiones?**
 Por defecto no. Si se activó la versión gratuita, un medidor muestra cuántas conversiones llevas usadas, y al llegar al límite aparece un aviso para pasar a la versión PRO.
