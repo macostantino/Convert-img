@@ -32,6 +32,7 @@ Toca uno de los cuatro botones de arriba. El botón seleccionado queda resaltado
   - JPG a CMYK: `.jpg`, `.jpeg`
   - Marca de agua: `.jpg`, `.jpeg`, `.png`, `.heic`, `.heif`
 - Tamaño máximo: **200 MB por archivo**.
+- Tamaño máximo del lote: **1000 MB (1 GB) en total** por tanda. Debajo del cargador se ve cuánto lleva el lote. Al llegar al 80% aparece un **aviso**; si se pasa del tope, aparece un error y el botón Convertir queda desactivado hasta que quites archivos o los conviertas en varias tandas.
 
 ### Opciones de HEIC a JPG
 - **Calidad del JPG** (50% a 100%, por defecto 92%). Más calidad = archivo más pesado. Desde 90% la imagen conserva el máximo detalle de color.
@@ -129,4 +130,4 @@ No con un ajuste: queda dibujada en los píxeles. Con edición manual se puede d
 Por defecto no. Si se activó la versión gratuita, un medidor muestra cuántas conversiones llevas usadas, y al llegar al límite aparece un aviso para pasar a la versión PRO.
 
 **¿Cuántos archivos puedo subir de una vez?**
-Depende de la memoria del servidor: los archivos se procesan en memoria. Si la app se pone lenta o se corta, divide el trabajo en lotes más chicos.
+No hay tope de cantidad, pero sí de peso: 1000 MB por lote (configurable). Además depende de la memoria del servidor: los archivos se procesan en memoria. Si la app se pone lenta o se corta, divide el trabajo en lotes más chicos.

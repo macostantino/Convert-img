@@ -22,6 +22,8 @@ LOGO = ROOT / "assets" / "logo.png"
 ICONS = {"heic": ":material/image:", "png": ":material/palette:", "jpg": ":material/photo_camera:",
          "wm": ":material/branding_watermark:"}
 TICS = ("220", "200", "180")        # perfiles WAN-IFRA; el primero (220) es el recomendado
+MAX_BATCH_MB = int(os.getenv("CONVERT_IMG_MAX_MB", "1000"))   # tope de MB por lote (pensado para ~16 GB de RAM)
+WARN_RATIO = 0.8                    # aviso al llegar al 80% del tope
 MAX_ROWS_WITH_BUTTON = 100          # filas con botón de descarga individual
 
 st.set_page_config(page_title="convert-img · by margarita.dev", page_icon=str(FAVICON), layout="wide",
@@ -128,6 +130,9 @@ TEXTS = {
         "only_n": "Solo se convertirán **{left}** de {n} archivos (límite de la versión gratuita).",
         "convert": "Convertir",
         "no_files": "Aún no has subido archivos {noun}.",
+        "batch_size": "Lote: {n} archivo{s} · {mb} de {max} MB",
+        "batch_warn": "Estás cerca del tope del lote ({mb} de {max} MB). Si la app se pone lenta, convierte en tandas más chicas.",
+        "batch_over": "El lote pesa {mb} MB y el máximo es {max} MB. Quita archivos o conviértelos en varias tandas para poder continuar.",
         "limit_caption": "Límite alcanzado. Pásate a la versión PRO.",
         "idle": "En espera", "left": "faltan ~{eta}", "converting": "Convirtiendo {name}{eta}  ·  {pct}%  ·  {i} / {n}",
         "stopped": "Detenido: límite de la versión gratuita alcanzado", "done": "¡Conversión completa!",
@@ -173,6 +178,9 @@ TEXTS = {
         "only_n": "Only **{left}** of {n} files will be converted (free version limit).",
         "convert": "Convert",
         "no_files": "No {noun} files uploaded yet.",
+        "batch_size": "Batch: {n} file{s} · {mb} of {max} MB",
+        "batch_warn": "You are close to the batch limit ({mb} of {max} MB). If the app slows down, convert in smaller batches.",
+        "batch_over": "The batch weighs {mb} MB and the maximum is {max} MB. Remove files or convert them in several batches to continue.",
         "limit_caption": "Limit reached. Upgrade to the PRO version.",
         "idle": "Idle", "left": "~{eta} left", "converting": "Converting {name}{eta}  ·  {pct}%  ·  {i} / {n}",
         "stopped": "Stopped: free version limit reached", "done": "Conversion complete!",
@@ -299,6 +307,16 @@ with st.container(border=True):
         type=cv.accepted_types(cmode), accept_multiple_files=True,
         key=f"up_{ss.mode}_{ss.uploader_n}", label_visibility="collapsed",
     )
+    batch_mb = sum(f.size for f in files) / 1048576
+    over = batch_mb > MAX_BATCH_MB
+    if files:
+        info = dict(n=len(files), s="s" if len(files) != 1 else "", mb=round(batch_mb), max=MAX_BATCH_MB)
+        if over:
+            st.error(t("batch_over", **info))
+        elif batch_mb >= MAX_BATCH_MB * WARN_RATIO:
+            st.warning(t("batch_warn", **info))
+        else:
+            st.caption(t("batch_size", **info))
     quality, black_pct, wm_opts = 92, 0, {}
     if ss.mode == "wm":
         wm_up = st.file_uploader(t("wm_upload"), type=["png", "jpg", "jpeg", "webp"], key=f"wmup_{ss.uploader_n}")
@@ -338,7 +356,7 @@ with st.container(border=True):
         left = n
     if n and 0 < left < n:
         st.info(t("only_n", left=left, n=n))
-    go = st.button(t("convert"), key="go", disabled=(n == 0 or left <= 0 or (ss.mode == "wm" and not wm_opts["wm"])),
+    go = st.button(t("convert"), key="go", disabled=(n == 0 or left <= 0 or over or (ss.mode == "wm" and not wm_opts["wm"])),
                    type="primary")
     if n == 0:
         st.caption(t("no_files", noun=mode.noun))

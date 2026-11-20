@@ -127,6 +127,8 @@ Contador de archivos convertidos con límite opcional. Es un freno básico, no u
 
 **Secrets opcionales** (Streamlit Secrets o variables de entorno): `ADMIN_KEY` habilita el panel Admin en la barra lateral (total convertido y reinicio del contador). `PRO_URL` agrega el botón "Obtener la versión PRO" en el aviso de límite.
 
+**Tope por lote (`app.py`):** `MAX_BATCH_MB`, leído de la variable de entorno `CONVERT_IMG_MAX_MB` (por defecto **1000** MB; pensado para una máquina de ~16 GB de RAM). Se suma `f.size` de los archivos subidos: bajo el 80% se muestra el peso del lote (`st.caption`), desde el 80% un aviso (`st.warning`), y por encima del tope un error (`st.error`) y el botón Convertir queda desactivado. En Streamlit Community Cloud (~1 GB de RAM) conviene bajarlo, por ejemplo `CONVERT_IMG_MAX_MB=150`.
+
 ## 6. Configuración (`.streamlit/config.toml`)
 Tema claro con los colores de la marca (`#1f9bb0`, `#0f2b46`, fondo `#f3f6f9`), `maxUploadSize = 200` (MB por archivo), barra de herramientas mínima y sin estadísticas de uso.
 
