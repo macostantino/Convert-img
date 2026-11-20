@@ -22,7 +22,10 @@ LOGO = ROOT / "assets" / "logo.png"
 ICONS = {"heic": ":material/image:", "png": ":material/palette:", "jpg": ":material/photo_camera:",
          "wm": ":material/branding_watermark:"}
 TICS = ("220", "200", "180")        # perfiles WAN-IFRA; el primero (220) es el recomendado
-MAX_BATCH_MB = int(os.getenv("CONVERT_IMG_MAX_MB", "1000"))   # tope de MB por lote (pensado para ~16 GB de RAM)
+# Tope de MB por lote según el modo (pensado para ~16 GB de RAM), al 80% de lo calculado:
+#   marca de agua / HEIC: 1000 MB -> 800 MB.  CMYK: cada TIFF pesa ~40 MB por foto de 12 MP, 300 MB -> 240 MB.
+MAX_MB_DEFAULT = int(os.getenv("CONVERT_IMG_MAX_MB", "800"))
+MAX_MB_CMYK = int(os.getenv("CONVERT_IMG_MAX_MB_CMYK", "240"))
 WARN_RATIO = 0.8                    # aviso al llegar al 80% del tope
 MAX_ROWS_WITH_BUTTON = 100          # filas con botón de descarga individual
 
@@ -130,6 +133,9 @@ TEXTS = {
         "only_n": "Solo se convertirán **{left}** de {n} archivos (límite de la versión gratuita).",
         "convert": "Convertir",
         "no_files": "Aún no has subido archivos {noun}.",
+        "batch_max": "**Máximo por lote en este modo: {max} MB** en total (cada archivo hasta 200 MB).",
+        "batch_max_cmyk": "**Máximo por lote en este modo: {max} MB** en total (cada archivo hasta 200 MB). "
+                          "En CMYK cada foto genera un TIFF mucho más pesado que el original (unos 40 MB por foto de 12 MP), por eso el tope es menor.",
         "batch_size": "Lote: {n} archivo{s} · {mb} de {max} MB",
         "batch_warn": "Estás cerca del tope del lote ({mb} de {max} MB). Si la app se pone lenta, convierte en tandas más chicas.",
         "batch_over": "El lote pesa {mb} MB y el máximo es {max} MB. Quita archivos o conviértelos en varias tandas para poder continuar.",
@@ -178,6 +184,9 @@ TEXTS = {
         "only_n": "Only **{left}** of {n} files will be converted (free version limit).",
         "convert": "Convert",
         "no_files": "No {noun} files uploaded yet.",
+        "batch_max": "**Maximum per batch in this mode: {max} MB** in total (each file up to 200 MB).",
+        "batch_max_cmyk": "**Maximum per batch in this mode: {max} MB** in total (each file up to 200 MB). "
+                          "In CMYK each photo produces a TIFF much heavier than the original (about 40 MB per 12 MP photo), so the cap is lower.",
         "batch_size": "Batch: {n} file{s} · {mb} of {max} MB",
         "batch_warn": "You are close to the batch limit ({mb} of {max} MB). If the app slows down, convert in smaller batches.",
         "batch_over": "The batch weighs {mb} MB and the maximum is {max} MB. Remove files or convert them in several batches to continue.",
@@ -307,6 +316,8 @@ with st.container(border=True):
         type=cv.accepted_types(cmode), accept_multiple_files=True,
         key=f"up_{ss.mode}_{ss.uploader_n}", label_visibility="collapsed",
     )
+    MAX_BATCH_MB = MAX_MB_CMYK if ss.mode in ("png", "jpg") else MAX_MB_DEFAULT
+    st.info(t("batch_max" + ("_cmyk" if ss.mode in ("png", "jpg") else ""), max=MAX_BATCH_MB), icon=":material/scale:")
     batch_mb = sum(f.size for f in files) / 1048576
     over = batch_mb > MAX_BATCH_MB
     if files:
