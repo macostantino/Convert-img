@@ -151,7 +151,7 @@ def _ascii(text: str) -> str:
 
 
 def add_watermark(data: bytes, wm: bytes, position: str = "br", scale_pct: float = 10,
-                  opacity_pct: float = 20, quality: int = 100, author: str = "", copyright: str = "") -> bytes:
+                  opacity_pct: float = 20, quality: int = 85, author: str = "", copyright: str = "") -> bytes:
     """Superpone la marca de agua (bytes de un PNG/JPG/WEBP) sobre la imagen.
        scale_pct = ancho de la marca como % del ancho de la foto; opacity_pct = 0-100.
        author / copyright: si se indican, se escriben en el EXIF (Artist 0x013B, Copyright 0x8298); el resto del EXIF

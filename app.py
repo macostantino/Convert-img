@@ -308,7 +308,7 @@ with st.container(border=True):
         pos = w1.selectbox(t("wm_pos"), cv.WM_POSITIONS, format_func=lambda v: t("pos_" + v))
         scale = w2.slider(t("wm_size"), 5, 100, 10, format="%d%%")
         opac = w3.slider(t("wm_op"), 10, 100, 20, format="%d%%")
-        quality = st.slider(t("quality"), 50, 100, 100, format="%d%%")
+        quality = st.slider(t("quality"), 50, 100, 85, format="%d%%")
         m1, m2 = st.columns(2)
         ss.setdefault("wm_author_last", None)
         if ss.wm_author_last != wm_name:    # al cambiar de marca, autor y copyright se rellenan con su nombre
